@@ -31,9 +31,9 @@ from citizens_online.db.models import (
     TranscriptSegment,
 )
 from citizens_online.db.models.base import utcnow
+from citizens_online.domain.analysis_schemas import RoomAnalysis, RoundAnalysis
 from citizens_online.logging_setup import get_logger
 from citizens_online.providers.analysis.openai_compat import AnalysisError, chat_json
-from citizens_online.domain.analysis_schemas import RoomAnalysis, RoundAnalysis
 from citizens_online.services import settings as settings_svc
 
 log = get_logger(__name__)
@@ -311,14 +311,17 @@ def analyze_round(db: DbSession, store, round_obj: Round) -> int:
         )
         db.add(finding)
         db.flush()
-        # a cluster inherits the evidence of the findings it aggregates, so the
-        # trail from a conclusion back to an utterance is never broken
+        # A cluster inherits the evidence of the findings it aggregates, so the
+        # trail from a conclusion back to an utterance is never broken. Two
+        # source findings often quote the same passage, hence the set: the link
+        # table is unique on (finding, segment).
+        inherited: set[str] = set()
         for fid in source_ids:
             source = db.get(Finding, fid)
             for link in (source.evidence if source else []):
-                finding.evidence.append(
-                    FindingEvidence(transcript_segment_id=link.transcript_segment_id)
-                )
+                inherited.add(link.transcript_segment_id)
+        for segment_id in sorted(inherited):
+            finding.evidence.append(FindingEvidence(transcript_segment_id=segment_id))
         stored += 1
     log.info("round_analyzed", round_id=round_obj.id, clusters=stored)
     return stored

@@ -200,7 +200,9 @@ def remaining_seconds(obj: Round, now: datetime | None = None) -> int | None:
 
 # ------------------------------------------------------------ participants
 
-def add_participants(db: DbSession, session_obj: Session, entries: list[dict], user: str) -> list[Participant]:
+def add_participants(
+    db: DbSession, session_obj: Session, entries: list[dict], user: str
+) -> list[Participant]:
     existing = {p.nc_user_id for p in session_obj.participants}
     created = []
     for entry in entries:
@@ -338,7 +340,6 @@ def rooms_payload(db: DbSession, round_obj: Round) -> list[dict]:
             select(SpeakingMetric).where(SpeakingMetric.round_id == round_obj.id)
         ).scalars()
     }
-    total_ms = sum(m.speaking_ms for m in metrics.values()) or 0
     out = []
     for room in sorted(round_obj.rooms, key=lambda r: r.number):
         room_total = sum(

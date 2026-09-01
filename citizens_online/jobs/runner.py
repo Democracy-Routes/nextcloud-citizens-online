@@ -7,10 +7,16 @@ worker thread (they use sync SQLAlchemy + subprocesses), and applies
 exponential backoff on failure. On startup, stale RUNNING jobs (from a crash
 or restart) are recovered to RETRY.
 
-CONTRACT: handlers run inside ONE session whose transaction takes SQLite's
-single write lock (BEGIN IMMEDIATE). Handlers MUST session.commit() right
-before any long external call (ffmpeg, STT/LLM HTTP) — a transaction held
-across those starves every API request into 500s after busy_timeout.
+CONTRACT: a handler receives only its payload and opens its own short
+transactions. Unlike the in-person app — where one job was one database
+transaction — the work here is multi-phase (import chat, wait for audio,
+transcribe, analyse), and holding SQLite's single write lock across an ffmpeg
+run or an LLM call starves every API request into 500s after busy_timeout.
+Handlers therefore keep their transactions narrow and never span a network
+call with one.
+
+The job row itself is claimed and settled in a separate short transaction, so
+a handler that crashes still leaves an accurate RETRY/FAILED state behind.
 """
 
 import asyncio
@@ -20,11 +26,11 @@ from datetime import timedelta
 
 from sqlalchemy import select
 
+from citizens_online.core.engine.tick import tick_if_due
 from citizens_online.db.models import AppJob
 from citizens_online.db.models.base import utcnow
 from citizens_online.db.session import session_scope
 from citizens_online.jobs.handlers import HANDLERS, PermanentJobError
-from citizens_online.core.engine.tick import tick_if_due
 from citizens_online.jobs.sweep import SWEEP_INTERVAL_SECONDS, run_sweeps
 from citizens_online.logging_setup import get_logger
 
@@ -66,16 +72,23 @@ def _claim_next_job() -> str | None:
 
 
 def _run_job(job_id: str) -> None:
+    # The job row is read and released before the handler runs: the handler
+    # owns its own transactions, and this one must not be held across it.
     with session_scope() as session:
         job = session.get(AppJob, job_id)
         if job is None:
             return
-        handler = HANDLERS.get(job.type)
-        log.info("job_started", job_id=job.id, job_type=job.type, attempt=job.attempts)
+        job_type, payload_json, attempts = job.type, job.payload_json, job.attempts
+    handler = HANDLERS.get(job_type)
+    log.info("job_started", job_id=job_id, job_type=job_type, attempt=attempts)
+    with session_scope() as session:
+        job = session.get(AppJob, job_id)
         try:
             if handler is None:
-                raise PermanentJobError(f"No handler for job type {job.type}")
-            handler(session, json.loads(job.payload_json))
+                raise PermanentJobError(f"No handler for job type {job_type}")
+            session.commit()  # release the lock before the handler works
+            handler(json.loads(payload_json))
+            job = session.get(AppJob, job_id)
         except PermanentJobError as exc:
             job.state = "FAILED"
             job.last_error = str(exc)[:2000]

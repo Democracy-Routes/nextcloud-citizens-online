@@ -95,7 +95,9 @@ def update_finding(finding_id: str, payload: dict, db: DB, user: CurrentUser):
         finding.reviewed_by = user
         finding.reviewed_at = utcnow()
     elif edited:
-        finding.status = "EDITED_AND_APPROVED" if finding.status in ("APPROVED", "EDITED_AND_APPROVED") else finding.status
+        if finding.status in ("APPROVED", "EDITED_AND_APPROVED"):
+            # an edit to something already approved needs approving again
+            finding.status = "EDITED_AND_APPROVED"
         finding.reviewed_by = user
         finding.reviewed_at = utcnow()
     record_audit_event(

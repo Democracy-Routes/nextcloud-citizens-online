@@ -67,8 +67,11 @@ async def upload_chunk(
     body = await request.body()
 
     def _persist() -> tuple[dict, str, str, str]:
-        # read caption config before opening the transaction: it is an OCS call
-        snap = settings_svc.snapshot()
+        # Warm the settings cache before the transaction opens. Reading it is an
+        # OCS call to Nextcloud, and holding SQLite's single write lock across a
+        # network round-trip is what wedged the in-person app under concurrent
+        # uploads. The value itself is read again after the transaction closes.
+        settings_svc.snapshot()
         with session_scope() as db:
             user = request.headers.get("x-test-user") or _user_from_request(request)
             recording_id_out = recording_id

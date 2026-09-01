@@ -25,7 +25,8 @@ from citizens_online.infra.nextcloud.talk_adapter import (
     TalkError,
 )
 from citizens_online.logging_setup import get_logger
-from citizens_online.services import bot_registry, deliberation as delib
+from citizens_online.services import bot_registry
+from citizens_online.services import deliberation as delib
 from citizens_online.services.audit import record_audit_event
 from citizens_online.services.jobs import enqueue_job
 

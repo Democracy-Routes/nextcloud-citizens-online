@@ -242,13 +242,13 @@ def render_pdf(report: dict, logo_path: Path | None = None,
             t for t in round_["rooms"] if t["findings"] or t["summary"]
         ]
         if rooms_with_content:
-            pdf.group_heading("Table detail", MUTED)
-            for table in rooms_with_content:
-                pdf.eyebrow(f"Room {table['table_number']}", ACCENT)
-                if table["summary"]:
-                    pdf.text_block(table["summary"], size=9.5, color=MUTED, height=4.8)
+            pdf.group_heading("Room detail", MUTED)
+            for room in rooms_with_content:
+                pdf.eyebrow(f"Room {room['room_number']}", ACCENT)
+                if room["summary"]:
+                    pdf.text_block(room["summary"], size=9.5, color=MUTED, height=4.8)
                     pdf.ln(1)
-                for finding in table["findings"]:
+                for finding in room["findings"]:
                     _finding(pdf, finding, cross=False)
                 pdf.ln(1)
 

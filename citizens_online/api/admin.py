@@ -14,7 +14,6 @@ from nc_py_api import NextcloudApp
 from nc_py_api.ex_app import nc_app
 
 from citizens_online.logging_setup import get_logger
-from citizens_online.security.identity import CurrentUser
 from citizens_online.services import settings as settings_svc
 
 log = get_logger(__name__)
