@@ -76,6 +76,7 @@ def create_session(db: DbSession, user: str, data: dict) -> Session:
     db.flush()
     for index, r in enumerate(data.get("rounds") or []):
         add_round(db, obj, r, position=index + 1)
+    db.expire(obj, ["rounds"])
     record_audit_event(db, "session_created", "session", obj.id, user, {"name": obj.name})
     return obj
 
@@ -220,6 +221,10 @@ def add_participants(
         created.append(obj)
     db.flush()
     if created:
+        # rows were created with a foreign key rather than appended to the
+        # collection, so the already-loaded relationship must be refreshed —
+        # otherwise the caller sees a session with no participants
+        db.expire(session_obj, ["participants"])
         record_audit_event(
             db, "participants_added", "session", session_obj.id, user, {"count": len(created)}
         )

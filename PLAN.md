@@ -3,7 +3,9 @@
 **Democracy Routes as a Nextcloud ExApp.** Feasibility verdict, decisions, MVP 0.1 plan, roadmap.
 
 - Specification: [`docs/SPEC.md`](docs/SPEC.md) (cited below as §n)
-- Status: planning document, 2026-08-31. No code exists yet.
+- Status: **implemented through the vertical slice**, 2026-09-01. See
+  [`TESTING.md`](TESTING.md) to try it and [`HANDOVER.md`](HANDOVER.md) for what
+  changed on the server.
 - Scope note: this document deliberately contains **no hosting, sizing or cost reasoning**; that is decided separately.
 
 ---
@@ -51,6 +53,21 @@
 ---
 
 # Part A — Verdict and decisions
+
+## 0. What was built
+
+The MVP 0.1 vertical slice runs on `cloud.democracyinnovators.com`: a session
+with rounds and participants becomes real Talk breakout rooms, each browser
+records its own participant, the facilitator keeps time and speaking balance,
+and what was said becomes findings with evidence and a report.
+
+**One deliberate deviation from this document.** §12 specifies PostgreSQL; the
+build uses **SQLite**, exactly as the in-person app does, because that let the
+capture chain, the job runner and the live-caption engine be *copied* rather
+than ported — the difference between a working slice and an unfinished one. The
+WAL/`BEGIN IMMEDIATE`/read-only-session discipline and the AST guard test came
+with it. Postgres remains the right destination and the database layer is behind
+small functions, so the switch is contained.
 
 ## 1. Verdict
 
