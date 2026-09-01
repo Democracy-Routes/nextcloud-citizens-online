@@ -1,0 +1,196 @@
+# SPDX-FileCopyrightText: 2026 Philip <philip@decentsoftwa.re>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Audio assembly and validation (brief §23).
+
+Chunks from one continuous MediaRecorder session concatenate into a valid
+stream; ffmpeg then remuxes it into a clean container (fixing metadata like
+missing duration) without re-encoding.
+"""
+
+import hashlib
+import json
+import subprocess
+
+from sqlalchemy.orm import Session
+
+from citizens_online.config import get_settings
+from citizens_online.db.models import Recording
+from citizens_online.logging_setup import get_logger
+from citizens_online.services.capture import missing_sequences
+from citizens_online.services.recording_states import transition
+from citizens_online.storage.paths import assembled_dir, recording_dir, temp_dir
+from citizens_online.storage.space import has_room_for
+
+log = get_logger(__name__)
+
+EXTENSION_BY_MIME = {
+    "audio/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "audio/mp4": ".m4a",
+}
+
+
+class AudioAssemblyError(Exception):
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+class StorageFullError(Exception):
+    """Not enough disk to assemble safely. Retryable — the audio is fine and
+    the operator may free space, so this must never mark it AUDIO_INVALID."""
+
+
+def _extension_for(mime_type: str) -> str:
+    base = mime_type.split(";")[0].strip().lower()
+    return EXTENSION_BY_MIME.get(base, ".webm")
+
+
+def assemble_recording(session: Session, recording: Recording) -> None:
+    """Concatenate chunks, validate with ffprobe, remux, checksum, mark AUDIO_READY."""
+    missing = missing_sequences(session, recording)
+    if missing:
+        transition(recording, "WAITING_FOR_CHUNKS")
+        log.warning("audio_assemble_missing_chunks", recording_id=recording.id, missing=len(missing))
+        return
+
+    root = get_settings().app_persistent_storage
+    directory = recording_dir(
+        root, recording.session_id, recording.round_id, recording.room_id, recording.id
+    )
+    extension = _extension_for(recording.mime_type)
+    raw_path = temp_dir(root) / f"{recording.id}-raw{extension}"
+    canonical = assembled_dir(root, recording.session_id) / f"{recording.id}{extension}"
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+
+    chunks = sorted(recording.chunks, key=lambda c: c.sequence_number)
+    # assembly writes a full raw concat plus the remuxed copy, so it needs
+    # roughly twice the recording free before it starts
+    needed = sum(chunk.size_bytes for chunk in chunks) * 2
+    if not has_room_for(root, needed):
+        # deliberately NOT an AudioAssemblyError: that marks the recording
+        # AUDIO_INVALID for good, and there is nothing wrong with this audio.
+        # Space may be freed, so let the job back off and try again.
+        raise StorageFullError(
+            "Not enough free storage to assemble this recording — the uploaded chunks are kept"
+        )
+    # release the DB write lock before file/ffmpeg work: the job session
+    # otherwise holds SQLite's single writer slot for the whole assembly,
+    # 500-ing every API request after busy_timeout (expire_on_commit=False
+    # keeps the loaded chunk rows usable)
+    session.commit()
+    digest = hashlib.sha256()
+    with open(raw_path, "wb") as raw:
+        for chunk in chunks:
+            data = (root / chunk.path).read_bytes()
+            if hashlib.sha256(data).hexdigest() != chunk.sha256:
+                raw_path.unlink(missing_ok=True)
+                raise AudioAssemblyError(
+                    "CHUNK_CORRUPTED", f"Chunk {chunk.sequence_number} failed checksum on disk"
+                )
+            raw.write(data)
+            digest.update(data)
+
+    try:
+        probe = _ffprobe(raw_path)
+        _remux(raw_path, canonical)
+        final_probe = _ffprobe(canonical)
+    except AudioAssemblyError:
+        raise
+    finally:
+        raw_path.unlink(missing_ok=True)
+
+    recording.canonical_audio_path = str(canonical.relative_to(root))
+    recording.duration_seconds = final_probe.get("duration") or probe.get("duration")
+    recording.sha256 = hashlib.sha256(canonical.read_bytes()).hexdigest()
+    recording.error_code = ""
+    transition(recording, "AUDIO_READY")
+    log.info(
+        "audio_assembled",
+        recording_id=recording.id,
+        duration_seconds=recording.duration_seconds,
+        size_bytes=canonical.stat().st_size,
+    )
+    _write_manifest(directory, recording, chunks)
+    _discard_chunks(session, root, directory, recording, chunks)
+
+
+def _discard_chunks(session: Session, root, directory, recording: Recording, chunks) -> None:
+    """Drop the per-chunk copies now that the canonical file is verified.
+
+    Chunks are the upload transport, not a second archive, but nothing ever
+    collected them — so every recording sat on disk twice, permanently
+    (measured on a test instance: 37 MB of chunks against 35 MB of assembled
+    audio). manifest.json keeps each chunk's sequence, checksum and size, so
+    the audit trail survives the bytes.
+
+    Safe here specifically: ffprobe has validated the remuxed file, its
+    checksum is stored, and no state transitions back into ASSEMBLING once a
+    recording is AUDIO_READY.
+    """
+    removed, freed = [], 0
+    for chunk in chunks:
+        try:
+            (root / chunk.path).unlink(missing_ok=True)
+        except OSError:
+            log.warning("chunk_cleanup_failed", recording_id=recording.id, exc_info=True)
+            continue  # leave the row while the bytes are still on disk
+        removed.append(chunk)
+        freed += chunk.size_bytes
+    for chunk in removed:
+        session.delete(chunk)
+    chunks_dir = directory / "chunks"
+    if chunks_dir.is_dir():
+        try:
+            chunks_dir.rmdir()  # keep manifest.json beside it
+        except OSError:
+            pass
+    log.info("chunks_reclaimed", recording_id=recording.id, chunks=len(removed), freed_bytes=freed)
+
+
+def _write_manifest(directory, recording: Recording, chunks) -> None:
+    manifest = {
+        "recording_id": recording.id,
+        "mime_type": recording.mime_type,
+        "total_chunks": recording.total_chunks,
+        "canonical_audio_path": recording.canonical_audio_path,
+        "sha256": recording.sha256,
+        "duration_seconds": recording.duration_seconds,
+        "chunks": [
+            {"sequence": c.sequence_number, "sha256": c.sha256, "size": c.size_bytes} for c in chunks
+        ],
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "manifest.json").write_text(json.dumps(manifest, indent=1))
+
+
+def _ffprobe(path) -> dict:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-print_format", "json",
+            "-show_format", "-show_streams", str(path),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if result.returncode != 0:
+        raise AudioAssemblyError("AUDIO_INVALID", f"ffprobe failed: {result.stderr[-500:]}")
+    info = json.loads(result.stdout or "{}")
+    streams = info.get("streams", [])
+    if not any(s.get("codec_type") == "audio" for s in streams):
+        raise AudioAssemblyError("AUDIO_INVALID", "No audio stream found")
+    duration = info.get("format", {}).get("duration")
+    return {"duration": float(duration) if duration else None}
+
+
+def _remux(source, target) -> None:
+    result = subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-i", str(source), "-c", "copy", str(target)],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if result.returncode != 0:
+        target.unlink(missing_ok=True)
+        raise AudioAssemblyError("AUDIO_INVALID", f"ffmpeg remux failed: {result.stderr[-500:]}")

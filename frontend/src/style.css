@@ -1,0 +1,968 @@
+/*
+ * Nextcloud Citizens — organizer design system.
+ *
+ * The AppAPI embedded page hands us a transparent flex-shrunk <div id="content">
+ * over the wallpaper, and NC core styles `button` with high-specificity :not()
+ * chains — so the app paints its own opaque two-pane surface and every selector
+ * is ID-scoped under #citizens-online-app. NC's --color-error is a pastel background
+ * tone; solid action colors therefore use fixed hex values legible in both
+ * themes.
+ */
+
+#content {
+	width: 100%;
+	flex: 1 1 auto;
+	align-self: stretch;
+	box-sizing: border-box;
+}
+
+#citizens-online-app {
+	/* ---- tokens ---- */
+	--cz-bg: var(--color-main-background, #fff);
+	--cz-bg-hover: var(--color-background-hover, #f5f5f5);
+	--cz-bg-dark: var(--color-background-dark, #ededed);
+	--cz-text: var(--color-main-text, #222);
+	--cz-text-muted: var(--color-text-maxcontrast, #6b6b6b);
+	--cz-border: var(--color-border, #e0e0e0);
+	--cz-border-dark: var(--color-border-dark, #ccc);
+	--cz-primary: var(--color-primary-element, #00679e);
+	--cz-primary-hover: var(--color-primary-element-hover, #00527e);
+	--cz-primary-text: var(--color-primary-element-text, #fff);
+	--cz-primary-light: var(--color-primary-element-light, #d8ecf5);
+	--cz-danger: #c62828;
+	--cz-danger-hover: #a51f1f;
+	--cz-green: #2d7b41;
+	--cz-amber: #a36a00;
+	--cz-orange: #c05000;
+	--cz-blue: #1565c0;
+	--cz-radius: var(--border-radius-element, 10px);
+	--cz-radius-lg: var(--border-radius-container, 14px);
+	--cz-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	--cz-shadow-lift: 0 3px 10px rgba(0, 0, 0, 0.12);
+
+	/* ---- surface / shell ---- */
+	box-sizing: border-box;
+	width: calc(100% - 2 * var(--body-container-margin, 8px));
+	flex: 1 1 auto;
+	display: flex;
+	background: var(--cz-bg);
+	color: var(--cz-text);
+	border-radius: var(--body-container-radius, 16px);
+	margin: var(--body-container-margin, 8px);
+	height: calc(100vh - 50px - 2 * var(--body-container-margin, 8px));
+	/* dvh: end above collapsing mobile browser toolbars (100vh hides the bottom) */
+	height: calc(100dvh - 50px - 2 * var(--body-container-margin, 8px));
+	overflow: hidden;
+	font-family: var(--font-face, system-ui, sans-serif);
+	box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.12);
+	position: relative;
+}
+
+#citizens-online-app *,
+#citizens-online-app *::before,
+#citizens-online-app *::after {
+	box-sizing: border-box;
+}
+
+#citizens-online-app h1, #citizens-online-app h2, #citizens-online-app h3, #citizens-online-app h4 {
+	margin: 0;
+	color: inherit;
+}
+
+#citizens-online-app h2 { font-size: 24px; font-weight: 700; }
+#citizens-online-app h3 { font-size: 16px; font-weight: 600; }
+#citizens-online-app p { line-height: 1.5; margin: 0 0 8px; }
+
+#citizens-online-app .cz-muted { color: var(--cz-text-muted); }
+
+/* ================= sidebar ================= */
+
+#citizens-online-app .cz-sidebar {
+	width: 300px;
+	flex: 0 0 300px;
+	display: flex;
+	flex-direction: column;
+	border-right: 1px solid var(--cz-border);
+	background: var(--cz-bg);
+	overflow: hidden;
+	z-index: 5;
+}
+
+#citizens-online-app .cz-sidebar__top {
+	padding: 12px;
+}
+
+#citizens-online-app .cz-sidebar__list {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 0 8px 8px;
+}
+
+#citizens-online-app .cz-sidebar__bottom {
+	border-top: 1px solid var(--cz-border);
+	padding: 8px;
+}
+
+#citizens-online-app .cz-navitem {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	border: none;
+	border-radius: var(--cz-radius);
+	background: none;
+	color: var(--cz-text);
+	cursor: pointer;
+	text-align: left;
+	font-size: 14px;
+	transition: background 0.12s ease;
+}
+
+#citizens-online-app .cz-navitem:hover { background: var(--cz-bg-hover); }
+
+#citizens-online-app .cz-navitem--active {
+	background: var(--cz-primary-light, var(--cz-bg-dark));
+	font-weight: 600;
+}
+
+#citizens-online-app .cz-navitem__body { min-width: 0; flex: 1; }
+
+#citizens-online-app .cz-navitem__name {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#citizens-online-app .cz-navitem__meta {
+	display: block;
+	font-size: 12px;
+	color: var(--cz-text-muted);
+	font-weight: 400;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#citizens-online-app .cz-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+#citizens-online-app .cz-dot--gray { background: #9e9e9e; }
+#citizens-online-app .cz-dot--blue { background: var(--cz-blue); }
+#citizens-online-app .cz-dot--red { background: var(--cz-danger); }
+#citizens-online-app .cz-dot--amber { background: var(--cz-amber); }
+#citizens-online-app .cz-dot--green { background: var(--cz-green); }
+#citizens-online-app .cz-dot--orange { background: var(--cz-orange); }
+
+/* ================= content pane ================= */
+
+#citizens-online-app .cz-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-y: auto;
+	padding: 24px clamp(16px, 3.5vw, 40px) 60px;
+}
+
+#citizens-online-app .cz-content > .cz-page {
+	max-width: 1040px;
+	margin: 0 auto;
+	animation: cz-fade-in 0.18s ease;
+}
+
+@keyframes cz-fade-in {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: none; }
+}
+
+#citizens-online-app .cz-pagehead {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 4px;
+}
+
+#citizens-online-app .cz-mobilebar { display: none; }
+
+/* ================= buttons ================= */
+
+#citizens-online-app .cz-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 9px 16px;
+	border-radius: var(--cz-radius);
+	border: 1px solid var(--cz-border-dark);
+	background: var(--cz-bg);
+	color: var(--cz-text);
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.12s ease, box-shadow 0.12s ease;
+	white-space: nowrap;
+}
+
+#citizens-online-app .cz-btn:hover:not(:disabled) { background: var(--cz-bg-hover); }
+
+#citizens-online-app .cz-btn:focus-visible {
+	outline: 2px solid var(--cz-primary);
+	outline-offset: 1px;
+}
+
+#citizens-online-app .cz-btn--primary {
+	background: var(--cz-primary);
+	border-color: var(--cz-primary);
+	color: var(--cz-primary-text);
+}
+
+#citizens-online-app .cz-btn--primary:hover:not(:disabled) { background: var(--cz-primary-hover); }
+
+#citizens-online-app .cz-btn--danger {
+	background: var(--cz-danger);
+	border-color: var(--cz-danger);
+	color: #fff;
+}
+
+#citizens-online-app .cz-btn--danger:hover:not(:disabled) { background: var(--cz-danger-hover); }
+
+#citizens-online-app .cz-btn--tertiary {
+	background: none;
+	border-color: transparent;
+	color: var(--cz-text-muted);
+}
+
+#citizens-online-app .cz-btn--tertiary:hover:not(:disabled) {
+	background: var(--cz-bg-hover);
+	color: var(--cz-text);
+}
+
+#citizens-online-app .cz-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+#citizens-online-app .cz-btn--small { padding: 5px 11px; font-size: 13px; font-weight: 500; gap: 5px; }
+#citizens-online-app .cz-btn--wide { width: 100%; }
+
+/* icon-only buttons */
+#citizens-online-app .cz-btn--small .cz-btn__label:empty { display: none; }
+
+/* ================= status pills ================= */
+
+#citizens-online-app .cz-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 3px 11px;
+	border-radius: 999px;
+	font-size: 12.5px;
+	font-weight: 600;
+	text-transform: capitalize;
+	white-space: nowrap;
+}
+
+#citizens-online-app .cz-pill__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+#citizens-online-app .cz-pill__dot--pulse { animation: cz-pulse 1.6s ease infinite; }
+
+@keyframes cz-pulse { 50% { opacity: 0.25; } }
+
+#citizens-online-app .cz-pill--gray { background: color-mix(in srgb, #9e9e9e 16%, var(--cz-bg)); color: var(--cz-text-muted); }
+#citizens-online-app .cz-pill--blue { background: color-mix(in srgb, var(--cz-blue) 14%, var(--cz-bg)); color: var(--cz-blue); }
+#citizens-online-app .cz-pill--red { background: color-mix(in srgb, var(--cz-danger) 13%, var(--cz-bg)); color: var(--cz-danger); }
+#citizens-online-app .cz-pill--amber { background: color-mix(in srgb, var(--cz-amber) 15%, var(--cz-bg)); color: var(--cz-amber); }
+#citizens-online-app .cz-pill--green { background: color-mix(in srgb, var(--cz-green) 14%, var(--cz-bg)); color: var(--cz-green); }
+#citizens-online-app .cz-pill--orange { background: color-mix(in srgb, var(--cz-orange) 15%, var(--cz-bg)); color: var(--cz-orange); }
+
+/* ================= cards / lists ================= */
+
+#citizens-online-app .cz-card {
+	border: 1px solid var(--cz-border);
+	border-radius: var(--cz-radius-lg);
+	background: var(--cz-bg);
+	padding: 18px 20px;
+	margin-bottom: 14px;
+}
+
+#citizens-online-app .cz-card--hover {
+	transition: box-shadow 0.15s ease, transform 0.15s ease;
+	cursor: pointer;
+}
+
+#citizens-online-app .cz-card--hover:hover {
+	box-shadow: var(--cz-shadow-lift);
+	transform: translateY(-1px);
+}
+
+#citizens-online-app .cz-statgrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+	gap: 12px;
+	margin: 16px 0;
+}
+
+#citizens-online-app .cz-stat {
+	border: 1px solid var(--cz-border);
+	border-radius: var(--cz-radius-lg);
+	padding: 16px 18px;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+}
+
+#citizens-online-app .cz-stat__icon {
+	width: 42px;
+	height: 42px;
+	border-radius: 12px;
+	background: var(--cz-primary-light, var(--cz-bg-dark));
+	color: var(--cz-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+#citizens-online-app .cz-stat__value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+#citizens-online-app .cz-stat__label { font-size: 12.5px; color: var(--cz-text-muted); }
+
+#citizens-online-app .cz-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#citizens-online-app .cz-row--spread { justify-content: space-between; }
+
+#citizens-online-app .cz-posbadge {
+	width: 34px;
+	height: 34px;
+	border-radius: 10px;
+	background: var(--cz-primary-light, var(--cz-bg-dark));
+	color: var(--cz-primary);
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+#citizens-online-app .cz-avatar {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--cz-primary-light, var(--cz-bg-dark));
+	color: var(--cz-primary);
+	font-size: 11.5px;
+	font-weight: 700;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	letter-spacing: 0.02em;
+}
+
+/* ================= tabs ================= */
+
+#citizens-online-app .cz-tabs {
+	display: flex;
+	gap: 2px;
+	border-bottom: 2px solid var(--cz-border);
+	margin: 18px 0 22px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+#citizens-online-app .cz-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 10px 15px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--cz-text-muted);
+	border-bottom: 3px solid transparent;
+	margin-bottom: -2px;
+	white-space: nowrap;
+	transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+#citizens-online-app .cz-tab:hover { color: var(--cz-text); }
+
+#citizens-online-app .cz-tab--active {
+	color: var(--cz-primary);
+	border-bottom-color: var(--cz-primary);
+}
+
+/* ================= forms ================= */
+
+#citizens-online-app input[type='text'],
+#citizens-online-app input[type='number'],
+#citizens-online-app input[type='password'],
+#citizens-online-app select,
+#citizens-online-app textarea {
+	padding: 9px 12px;
+	border: 1px solid var(--cz-border-dark);
+	border-radius: var(--cz-radius);
+	background: var(--cz-bg);
+	color: var(--cz-text);
+	font-size: 14px;
+	max-width: 100%;
+	font-family: inherit;
+}
+
+#citizens-online-app input:focus,
+#citizens-online-app select:focus,
+#citizens-online-app textarea:focus {
+	outline: 2px solid var(--cz-primary);
+	outline-offset: -1px;
+}
+
+#citizens-online-app .cz-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; min-width: 0; }
+#citizens-online-app .cz-field label { font-size: 13px; font-weight: 600; color: var(--cz-text-muted); }
+
+/* inputs fill their field — browser default widths are far too narrow */
+#citizens-online-app .cz-field input:not([type='checkbox']):not([type='radio']),
+#citizens-online-app .cz-field textarea,
+#citizens-online-app .cz-field select {
+	width: 100%;
+	max-width: 640px;
+}
+
+#citizens-online-app .cz-fieldgrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 0 18px;
+}
+
+#citizens-online-app .cz-radiocard {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	border: 2px solid var(--cz-border);
+	border-radius: var(--cz-radius-lg);
+	cursor: pointer;
+	font-weight: 600;
+	transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+#citizens-online-app .cz-radiocard--checked {
+	border-color: var(--cz-primary);
+	background: color-mix(in srgb, var(--cz-primary) 6%, var(--cz-bg));
+}
+
+/* ================= notes / alerts ================= */
+
+#citizens-online-app .cz-error {
+	background: color-mix(in srgb, #c62828 9%, var(--cz-bg));
+	color: var(--color-error-text, #b3261e);
+	border: 1px solid #c62828;
+	border-radius: var(--cz-radius);
+	padding: 10px 14px;
+	margin: 10px 0;
+	font-weight: 500;
+}
+
+#citizens-online-app .cz-ok-note {
+	background: color-mix(in srgb, var(--cz-green) 10%, var(--cz-bg));
+	color: var(--cz-green);
+	border: 1px solid var(--cz-green);
+	border-radius: var(--cz-radius);
+	padding: 10px 14px;
+	margin: 10px 0;
+	font-weight: 500;
+}
+
+/* ================= empty state / skeleton ================= */
+
+#citizens-online-app .cz-empty {
+	text-align: center;
+	padding: 48px 20px;
+	color: var(--cz-text-muted);
+}
+
+#citizens-online-app .cz-empty__icon {
+	width: 84px;
+	height: 84px;
+	margin: 0 auto 16px;
+	border-radius: 50%;
+	background: var(--cz-bg-dark);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--cz-text-muted);
+}
+
+#citizens-online-app .cz-empty__title { color: var(--cz-text); font-size: 17px; }
+#citizens-online-app .cz-empty__hint { max-width: 420px; margin: 8px auto 0; font-size: 14px; }
+#citizens-online-app .cz-empty__action { margin-top: 18px; display: flex; justify-content: center; gap: 10px; }
+
+#citizens-online-app .cz-skeleton__row {
+	border-radius: var(--cz-radius);
+	margin-bottom: 10px;
+	background: linear-gradient(90deg, var(--cz-bg-dark) 25%, var(--cz-bg-hover) 45%, var(--cz-bg-dark) 65%);
+	background-size: 200% 100%;
+	animation: cz-shimmer 1.4s linear infinite;
+}
+
+@keyframes cz-shimmer {
+	from { background-position: 200% 0; }
+	to { background-position: -200% 0; }
+}
+
+/* ================= modal / toasts ================= */
+
+#citizens-online-app .cz-modal-mask {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 50;
+	animation: cz-fade-in 0.14s ease;
+}
+
+#citizens-online-app .cz-modal {
+	background: var(--cz-bg);
+	border-radius: var(--cz-radius-lg);
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	padding: 22px 24px;
+	max-width: 420px;
+	width: calc(100% - 40px);
+}
+
+#citizens-online-app .cz-modal__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+#citizens-online-app .cz-modal__message { color: var(--cz-text-muted); }
+#citizens-online-app .cz-modal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+#citizens-online-app .cz-toasts {
+	position: absolute;
+	bottom: 18px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	z-index: 60;
+	pointer-events: none;
+}
+
+#citizens-online-app .cz-toast {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 18px;
+	border-radius: 999px;
+	background: var(--cz-text);
+	color: var(--cz-bg);
+	font-size: 14px;
+	font-weight: 600;
+	box-shadow: var(--cz-shadow-lift);
+}
+
+#citizens-online-app .cz-toast--error { background: var(--cz-danger); color: #fff; }
+
+#citizens-online-app .cz-toast-enter-active, #citizens-online-app .cz-toast-leave-active { transition: all 0.2s ease; }
+#citizens-online-app .cz-toast-enter-from, #citizens-online-app .cz-toast-leave-to { opacity: 0; transform: translateY(8px); }
+
+/* ================= tables ================= */
+
+#citizens-online-app table.cz-table { width: 100%; border-collapse: collapse; }
+
+#citizens-online-app table.cz-table th {
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--cz-text-muted);
+}
+
+#citizens-online-app table.cz-table th,
+#citizens-online-app table.cz-table td {
+	text-align: left;
+	padding: 9px 10px;
+	border-bottom: 1px solid var(--cz-border);
+	font-size: 14px;
+	vertical-align: middle;
+}
+
+#citizens-online-app table.cz-table tbody tr { transition: background 0.1s ease; }
+#citizens-online-app table.cz-table tbody tr:hover { background: var(--cz-bg-hover); }
+
+/* ================= tables grid (assignments) ================= */
+
+#citizens-online-app .cz-tables-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 12px;
+}
+
+/* ================= QR sheet ================= */
+
+#citizens-online-app .cz-qr-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+	gap: 16px;
+}
+
+#citizens-online-app .cz-qr-item {
+	text-align: center;
+	border: 1px solid var(--cz-border);
+	border-radius: var(--cz-radius-lg);
+	padding: 22px 18px;
+	background: #fff;
+	color: #000;
+}
+
+#citizens-online-app .cz-qr-item__assembly {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #777;
+	margin-bottom: 2px;
+}
+
+#citizens-online-app .cz-qr-item h3 { color: #000; font-size: 22px; font-weight: 800; }
+
+/* scoped to the QR image: a bare `.cz-qr-item svg` also caught button icons
+ * and stretched them to the button's width */
+#citizens-online-app .cz-qr-item .cz-qr-image svg {
+	width: 100%;
+	max-width: 210px;
+	height: auto;
+	display: block;
+	margin: 12px auto;
+}
+
+#citizens-online-app .cz-qr-url {
+	font-size: 10.5px;
+	color: #666;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin: 10px 0 8px;
+	background: #f5f6f8;
+	border: 1px solid var(--cz-border);
+	border-radius: 8px;
+	padding: 6px 10px;
+}
+
+#citizens-online-app .cz-nextstep {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	flex-wrap: wrap;
+	border-left: 4px solid var(--cz-primary);
+	margin-bottom: 14px;
+}
+
+#citizens-online-app .cz-promptbox {
+	background: var(--cz-bg-dark);
+	border: 1px solid var(--cz-border);
+	border-radius: 8px;
+	padding: 10px 12px;
+	font-size: 11.5px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 260px;
+	overflow-y: auto;
+	color: var(--cz-text-muted);
+	margin: 0;
+}
+
+/* ================= transcript conversation ================= */
+
+#citizens-online-app .cz-convo { max-height: 420px; overflow-y: auto; padding-right: 6px; }
+
+#citizens-online-app .cz-convo__seg {
+	display: flex;
+	gap: 12px;
+	padding: 8px 0;
+}
+
+#citizens-online-app .cz-convo__time {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	font-size: 12.5px;
+	color: var(--cz-text-muted);
+	padding-top: 2px;
+	width: 44px;
+	flex-shrink: 0;
+	text-align: right;
+}
+
+#citizens-online-app .cz-convo__body { border-left: 3px solid var(--cz-border); padding-left: 12px; min-width: 0; }
+#citizens-online-app .cz-convo__speaker { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+#citizens-online-app .cz-convo__text { margin: 2px 0 0; }
+
+#citizens-online-app .cz-convo__seg--s1 .cz-convo__body { border-color: #1565c0; }
+#citizens-online-app .cz-convo__seg--s1 .cz-convo__speaker { color: #1565c0; }
+#citizens-online-app .cz-convo__seg--s2 .cz-convo__body { border-color: #2d7b41; }
+#citizens-online-app .cz-convo__seg--s2 .cz-convo__speaker { color: #2d7b41; }
+#citizens-online-app .cz-convo__seg--s3 .cz-convo__body { border-color: #a36a00; }
+#citizens-online-app .cz-convo__seg--s3 .cz-convo__speaker { color: #a36a00; }
+#citizens-online-app .cz-convo__seg--s4 .cz-convo__body { border-color: #7b1fa2; }
+#citizens-online-app .cz-convo__seg--s4 .cz-convo__speaker { color: #7b1fa2; }
+#citizens-online-app .cz-convo__seg--s5 .cz-convo__body { border-color: #c05000; }
+#citizens-online-app .cz-convo__seg--s5 .cz-convo__speaker { color: #c05000; }
+
+/* ================= device log panel ================= */
+
+#citizens-online-app .cz-logpanel {
+	max-height: 300px;
+	overflow: auto;
+	font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+	font-size: 12px;
+	line-height: 1.6;
+	background: #1d1d1f;
+	color: #d5d5d7;
+	padding: 12px 14px;
+	border-radius: var(--cz-radius);
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+/* ================= countdown bar ================= */
+
+#citizens-online-app .cz-countbar {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	border: 1px solid var(--cz-border);
+	border-radius: var(--cz-radius-lg);
+	padding: 14px 20px;
+	margin-bottom: 16px;
+}
+
+#citizens-online-app .cz-countbar__time {
+	font-size: 30px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+}
+
+#citizens-online-app .cz-countbar__track {
+	flex: 1;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--cz-bg-dark);
+	overflow: hidden;
+	min-width: 80px;
+}
+
+#citizens-online-app .cz-countbar__fill {
+	height: 100%;
+	background: var(--cz-primary);
+	transition: width 1s linear;
+}
+
+/* ================= responsive ================= */
+
+@media (max-width: 768px) {
+	#citizens-online-app {
+		margin: 0;
+		width: 100%;
+		border-radius: 0;
+		height: calc(100vh - 50px);
+		height: calc(100dvh - 50px);
+	}
+
+	#citizens-online-app .cz-sidebar {
+		position: absolute;
+		inset: 0 auto 0 0;
+		width: min(300px, 85vw);
+		box-shadow: var(--cz-shadow-lift);
+		transform: translateX(-105%);
+		transition: transform 0.2s ease;
+	}
+
+	#citizens-online-app .cz-sidebar--open { transform: none; }
+
+	#citizens-online-app .cz-mobilebar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 12px;
+	}
+
+	#citizens-online-app .cz-content { padding: 14px 14px 50px; }
+	#citizens-online-app h2 { font-size: 20px; }
+	#citizens-online-app .cz-scrim {
+		position: absolute;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.3);
+		z-index: 4;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#citizens-online-app *, #citizens-online-app *::before, #citizens-online-app *::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* live/final model columns: the two headings sit directly above their inputs
+   and stay aligned, so every engine reads the same way */
+#citizens-online-app .cz-modelhead,
+#citizens-online-app .cz-modelrow {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	align-items: start;
+}
+
+#citizens-online-app .cz-modelhead {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--cz-text-muted);
+	margin-bottom: 4px;
+}
+
+#citizens-online-app .cz-modelhead--hint {
+	font-weight: 400;
+	font-size: 12.5px;
+	margin: 6px 0 0;
+}
+
+#citizens-online-app .cz-modelrow input { width: 100%; }
+
+/* ================= print (QR sheet) ================= */
+
+@media print {
+	/* The Print button downloads a proper PDF; this only makes Ctrl+P degrade
+	   sanely. It must NOT position the grid absolutely: an absolutely
+	   positioned box does not fragment across pages, so every page after the
+	   first was silently dropped. */
+	body * { visibility: hidden; }
+	#citizens-online-app {
+		display: block;
+		height: auto;
+		max-height: none;
+		overflow: visible;
+		position: static;
+	}
+	#citizens-online-app .cz-sidebar,
+	#citizens-online-app .cz-mobilebar { display: none; }
+	#citizens-online-app .cz-content {
+		overflow: visible;
+		height: auto;
+		padding: 0;
+	}
+	#citizens-online-app .cz-qr-grid, #citizens-online-app .cz-qr-grid * { visibility: visible; }
+	#citizens-online-app .cz-qr-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 8mm;
+	}
+	#citizens-online-app .cz-qr-item { break-inside: avoid; border: 1px solid #000; }
+	#citizens-online-app .cz-qr-item .cz-btn { display: none; }
+}
+
+/* ── Citizens Online: the screens the in-person app never had ─────────── */
+
+/* The participant's single screen. Wide enough to read, narrow enough that a
+   phone in a call and a laptop both get something sensible. */
+#citizens-online-app .cz-content--single { max-width: 720px; margin: 0 auto; }
+#citizens-online-app .cz-participant { padding: 8px 4px 40px; }
+#citizens-online-app .cz-round__head {
+	display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+#citizens-online-app .cz-question {
+	font-size: 18px; font-weight: 600; margin: 4px 0 16px;
+	padding: 12px 14px; border-left: 3px solid var(--cz-primary);
+	background: var(--cz-bg-hover); border-radius: 0 var(--cz-radius) var(--cz-radius) 0;
+}
+
+/* The clock is the one number both the moderator and the participant look at,
+   so it is deliberately large and turns red near the end. */
+#citizens-online-app .cz-timer {
+	font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums;
+	line-height: 1; color: var(--cz-text);
+}
+#citizens-online-app .cz-timer--urgent { color: var(--cz-danger); }
+
+#citizens-online-app .cz-capture {
+	display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+	margin: 16px 0; padding: 10px 12px; border-radius: var(--cz-radius);
+	background: var(--cz-bg-hover); font-size: 14px;
+}
+#citizens-online-app .cz-capture--recording { background: #fdecec; }
+#citizens-online-app .cz-dot--pulse { animation: cz-pulse 1.6s ease-in-out infinite; }
+@keyframes cz-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+#citizens-online-app .cz-captions {
+	margin-top: 20px; padding: 12px 14px; border: 1px solid var(--cz-border);
+	border-radius: var(--cz-radius); max-height: 320px; overflow-y: auto;
+}
+#citizens-online-app .cz-captions p { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+
+#citizens-online-app .cz-consent__list { line-height: 1.6; padding-left: 20px; }
+#citizens-online-app .cz-consent__list li { margin-bottom: 10px; }
+
+/* Moderator live view: rooms side by side, speaking share as a bar. */
+#citizens-online-app .cz-livebar {
+	display: flex; align-items: center; justify-content: space-between; gap: 16px;
+	padding: 12px 14px; border-radius: var(--cz-radius); background: var(--cz-bg-hover);
+	margin-bottom: 12px; flex-wrap: wrap;
+}
+#citizens-online-app .cz-livebar__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#citizens-online-app .cz-statusline { font-size: 13px; margin-bottom: 16px; }
+#citizens-online-app .cz-ok { color: var(--cz-green); }
+#citizens-online-app .cz-warn { color: var(--cz-orange); }
+
+#citizens-online-app .cz-rooms {
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;
+}
+#citizens-online-app .cz-speaking { list-style: none; padding: 0; margin: 8px 0; }
+#citizens-online-app .cz-speaking li {
+	display: grid; grid-template-columns: 1fr 90px 42px; align-items: center;
+	gap: 8px; margin-bottom: 6px; font-size: 14px;
+}
+#citizens-online-app .cz-speaking__name { display: flex; align-items: center; gap: 6px; }
+#citizens-online-app .cz-speaking__pct { text-align: right; font-variant-numeric: tabular-nums; }
+#citizens-online-app .cz-bar {
+	display: block; height: 8px; border-radius: 4px; background: var(--cz-bg-dark); overflow: hidden;
+}
+#citizens-online-app .cz-bar__fill { display: block; height: 100%; background: var(--cz-primary); }
+
+#citizens-online-app .cz-transcript {
+	margin-top: 10px; padding: 10px; background: var(--cz-bg-hover);
+	border-radius: var(--cz-radius); max-height: 260px; overflow-y: auto; font-size: 13px;
+}
+#citizens-online-app .cz-alerts { list-style: none; padding: 0; font-size: 13px; }
+#citizens-online-app .cz-alerts li {
+	padding: 8px 0; border-bottom: 1px solid var(--cz-border);
+}
+
+#citizens-online-app .cz-finding {
+	padding: 10px 0; border-bottom: 1px solid var(--cz-border);
+}
+#citizens-online-app .cz-finding:last-child { border-bottom: none; }
+#citizens-online-app .cz-finding blockquote {
+	margin: 6px 0 6px 12px; padding-left: 10px; border-left: 2px solid var(--cz-border-dark);
+	font-size: 13px; color: var(--cz-text);
+}
+#citizens-online-app .cz-tag {
+	display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px;
+	background: var(--cz-bg-dark); margin-right: 6px; text-transform: capitalize;
+}
+#citizens-online-app .cz-tag--draft { background: #fdf0d5; color: var(--cz-amber); }
+
+#citizens-online-app .cz-memberlist { list-style: none; padding: 0; font-size: 14px; }
+#citizens-online-app .cz-memberlist li {
+	display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;
+}
+#citizens-online-app .cz-inline-select { font-size: 12px; padding: 2px 4px; }
+#citizens-online-app .cz-round-edit {
+	padding: 10px 0; border-bottom: 1px dashed var(--cz-border);
+}
+#citizens-online-app .cz-checks { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+#citizens-online-app .cz-checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+#citizens-online-app .cz-small { font-size: 13px; }
+#citizens-online-app .cz-error { color: var(--cz-danger); font-size: 14px; }
+#citizens-online-app .cz-link { font-size: 13px; align-self: center; }

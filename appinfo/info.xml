@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<!--
+	SPDX-FileCopyrightText: 2026 Philip <philip@decentsoftwa.re>
+	SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>citizens_online</id>
+	<name>Citizens Online</name>
+	<summary>Run online citizens' assemblies in Nextcloud Talk breakout rooms</summary>
+	<description><![CDATA[
+Citizens Online runs **online deliberative assemblies** on top of Nextcloud Talk. An organizer
+defines a session with rounds and questions; the app creates the Talk conversation, splits
+participants into breakout rooms, keeps time, facilitates the discussion through a bot, and turns
+what was said into a reviewed report.
+
+## How it works
+
+1. Create a session, add Nextcloud users as participants, define one or more rounds.
+2. Assign participants to rooms — manually or randomly.
+3. Start a round: the app creates Talk breakout rooms, moves everyone into theirs, and starts the clock.
+4. Each participant's browser records their own microphone, so every transcript line carries a real
+   name rather than an anonymous speaker label.
+5. A facilitator bot watches speaking time and the clock and posts into each room.
+6. When the round ends, the app analyses each room's discussion, clusters findings across rooms, and
+   an organizer reviews everything before it becomes a report.
+
+## Data processing — please read
+
+* **Audio** is captured in the participant's browser and stored on your server. It is sent to a
+  speech-to-text engine only if an administrator configures one. With a self-hosted Vosk or Whisper
+  server, recordings never leave your infrastructure.
+* **Transcript text** (never audio) is sent to the analysis endpoint an administrator configures.
+  That can be your own server.
+* Nothing is sent anywhere until an administrator sets it up. Participants see exactly which engines
+  are in use before they consent.
+
+## Ethical AI Rating
+
+Green when transcription and analysis run against self-hosted endpoints; orange when a hosted
+provider is configured. The choice is the administrator's and is disclosed to participants.
+
+## Status
+
+Alpha. The pipeline runs end to end, but this is early software: bring your own privacy notice and
+deletion practice before running a real assembly.
+	]]></description>
+	<version>0.1.0-alpha.1</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="philip@decentsoftwa.re">Philip</author>
+	<author>Alessandro Oppo</author>
+	<documentation>
+		<user>https://github.com/theRAGEhero/citizens-online/blob/main/README.md</user>
+		<admin>https://github.com/theRAGEhero/citizens-online/blob/main/docs/administration.md</admin>
+		<developer>https://github.com/theRAGEhero/citizens-online/blob/main/PLAN.md</developer>
+	</documentation>
+	<category>tools</category>
+	<category>ai</category>
+	<website>https://github.com/theRAGEhero/citizens-online</website>
+	<bugs>https://github.com/theRAGEhero/citizens-online/issues</bugs>
+	<repository type="git">https://github.com/theRAGEhero/citizens-online.git</repository>
+	<dependencies>
+		<nextcloud min-version="32" max-version="35"/>
+	</dependencies>
+	<external-app>
+		<docker-install>
+			<registry>ghcr.io</registry>
+			<image>theragehero/citizens-online</image>
+			<image-tag>0.1.0-alpha.1</image-tag>
+		</docker-install>
+		<!-- Route regexes are matched against the request path WITHOUT a
+		     leading slash on AppAPI <= 33 and WITH one on 34+; the escaped
+		     bare-path form below is the only one that works on both.
+		     Order matters on AppAPI 34+: the first route matching path+verb
+		     wins outright, so narrow routes MUST precede catch-alls.
+		     Only GET, POST, PUT and DELETE are listed because AppAPI's proxy
+		     (ExAppProxy#ExAppGet/Post/Put/Delete) registers no other verb:
+		     a PATCH is answered 405 by Nextcloud's router before this table
+		     is ever consulted. -->
+		<routes>
+			<route>
+				<url>^js\/.*</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^css\/.*</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^img\/.*</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^api\/v1\/admin\/.*</url>
+				<verb>GET,POST,PUT,DELETE</verb>
+				<access_level>ADMIN</access_level>
+			</route>
+			<!-- Talk bot webhooks and transcription callbacks: authenticated by
+			     their own signatures, not by a Nextcloud session. -->
+			<route>
+				<url>^api\/v1\/integrations\/.*</url>
+				<verb>GET,POST</verb>
+				<access_level>PUBLIC</access_level>
+				<bruteforce_protection>[401, 403, 429]</bruteforce_protection>
+			</route>
+			<route>
+				<url>^api\/v1\/.*</url>
+				<verb>GET,POST,PUT,DELETE</verb>
+				<access_level>USER</access_level>
+			</route>
+		</routes>
+	</external-app>
+</info>
