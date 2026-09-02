@@ -50,15 +50,15 @@ deletion practice before running a real assembly.
 	<author mail="philip@decentsoftwa.re">Philip</author>
 	<author>Alessandro Oppo</author>
 	<documentation>
-		<user>https://github.com/theRAGEhero/citizens-online/blob/main/README.md</user>
-		<admin>https://github.com/theRAGEhero/citizens-online/blob/main/docs/administration.md</admin>
-		<developer>https://github.com/theRAGEhero/citizens-online/blob/main/PLAN.md</developer>
+		<user>https://github.com/Democracy-Routes/nextcloud-citizens-online/blob/main/README.md</user>
+		<admin>https://github.com/Democracy-Routes/nextcloud-citizens-online/blob/main/docs/administration.md</admin>
+		<developer>https://github.com/Democracy-Routes/nextcloud-citizens-online/blob/main/PLAN.md</developer>
 	</documentation>
 	<category>tools</category>
 	<category>ai</category>
-	<website>https://github.com/theRAGEhero/citizens-online</website>
-	<bugs>https://github.com/theRAGEhero/citizens-online/issues</bugs>
-	<repository type="git">https://github.com/theRAGEhero/citizens-online.git</repository>
+	<website>https://github.com/Democracy-Routes/nextcloud-citizens-online</website>
+	<bugs>https://github.com/Democracy-Routes/nextcloud-citizens-online/issues</bugs>
+	<repository type="git">https://github.com/Democracy-Routes/nextcloud-citizens-online.git</repository>
 	<dependencies>
 		<nextcloud min-version="32" max-version="35"/>
 	</dependencies>
