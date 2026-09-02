@@ -46,16 +46,16 @@ watch(selectedRound, load, { immediate: true })
 </script>
 
 <template>
-	<section class="cz-tabpanel">
-		<div class="cz-field-row">
-			<label class="cz-field cz-field--grow">
-				<span>Round</span>
+	<div>
+		<div class="cz-fieldgrid">
+			<div class="cz-field">
+				<label>Round</label>
 				<select v-model="selectedRound">
 					<option v-for="r in session.rounds" :key="r.id" :value="r.id">
 						{{ r.title }} — {{ r.status.replaceAll('_', ' ').toLowerCase() }}
 					</option>
 				</select>
-			</label>
+			</div>
 			<CzButton @click="randomize">Distribute randomly</CzButton>
 			<CzButton @click="copyPrevious">Copy previous round</CzButton>
 		</div>
@@ -68,7 +68,7 @@ watch(selectedRound, load, { immediate: true })
 		<div v-if="loading" class="cz-muted">Loading…</div>
 		<div v-else class="cz-rooms">
 			<div v-for="room in rooms" :key="room.id" class="cz-card">
-				<div class="cz-card__head">
+				<div class="cz-row cz-row--spread" style="flex-wrap: nowrap; align-items: flex-start">
 					<h3>{{ room.label || `Room ${room.number}` }}</h3>
 					<span class="cz-muted cz-small">{{ room.members.length }} people</span>
 				</div>
@@ -88,5 +88,5 @@ watch(selectedRound, load, { immediate: true })
 				<p v-if="!room.members.length" class="cz-muted cz-small">Empty</p>
 			</div>
 		</div>
-	</section>
+	</div>
 </template>

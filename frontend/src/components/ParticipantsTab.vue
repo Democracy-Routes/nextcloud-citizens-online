@@ -49,15 +49,15 @@ onMounted(load)
 </script>
 
 <template>
-	<section class="cz-tabpanel">
-		<label class="cz-field">
-			<span>Add Nextcloud users</span>
+	<div>
+		<div class="cz-field">
+			<label>Add Nextcloud users</label>
 			<input
 				v-model="input"
 				type="text"
 				placeholder="co1 co2 co3 — usernames, separated by spaces or commas"
 				@keyup.enter="add" />
-		</label>
+		</div>
 		<CzButton :disabled="busy" @click="add">{{ busy ? 'Adding…' : 'Add' }}</CzButton>
 
 		<p class="cz-muted cz-small">
@@ -83,5 +83,5 @@ onMounted(load)
 			</tbody>
 		</table>
 		<p v-else class="cz-muted">No participants yet.</p>
-	</section>
+	</div>
 </template>

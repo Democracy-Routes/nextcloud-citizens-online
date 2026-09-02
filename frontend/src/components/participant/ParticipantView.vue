@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
 			@decline="decline"
 		/>
 
-		<div v-else-if="state === 'in_round'" class="cz-round">
+		<div v-else-if="state === 'in_round'">
 			<header class="cz-round__head">
 				<div>
 					<div class="cz-eyebrow">{{ view.session.name }} · Room {{ room.number }}</div>
@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
 
 			<p v-if="round.question" class="cz-question">{{ round.question }}</p>
 
-			<div class="cz-actions">
+			<div class="cz-row">
 				<a class="cz-btn cz-btn--primary" :href="talkUrl" target="_blank" rel="noopener">
 					Join the discussion
 				</a>
@@ -217,7 +217,7 @@ onBeforeUnmount(() => {
 				</p>
 			</section>
 
-			<section class="cz-room-members">
+			<section class="cz-card">
 				<h3>In your room</h3>
 				<ul>
 					<li v-for="member in room.members" :key="member.nc_user_id">

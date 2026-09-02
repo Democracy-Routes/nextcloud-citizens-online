@@ -66,28 +66,33 @@ onMounted(load)
 
 <template>
 	<div v-if="loading" class="cz-muted">Loading…</div>
-	<div v-else-if="session" class="cz-detail">
-		<header class="cz-detail__head">
-			<div>
-				<h2>{{ session.name }}</h2>
-				<p class="cz-muted">
+	<div v-else-if="session" class="cz-page">
+		<div class="cz-pagehead">
+			<div style="min-width: 0">
+				<h2 style="overflow-wrap: anywhere">{{ session.name }}</h2>
+				<p class="cz-muted" style="margin: 4px 0 0">
 					{{ session.participant_count }} participants ·
 					{{ session.round_count }} rounds ·
 					{{ session.rooms_per_round }} rooms per round
 				</p>
 			</div>
-			<div class="cz-detail__status">
+			<div class="cz-row" style="flex-wrap: nowrap">
 				<CzStatusPill :status="session.status" />
 				<CzButton small variant="tertiary" @click="remove">Delete</CzButton>
 			</div>
-		</header>
+		</div>
 
-		<nav class="cz-tabs">
+		<nav class="cz-tabs" role="tablist">
 			<button
 				v-for="item in TABS"
 				:key="item.id"
+				:id="`session-tab-${item.id}`"
 				class="cz-tab"
 				:class="{ 'cz-tab--active': tab === item.id }"
+				role="tab"
+				:aria-selected="tab === item.id"
+				:aria-controls="`session-panel-${item.id}`"
+				:tabindex="tab === item.id ? 0 : -1"
 				type="button"
 				@click="tab = item.id">
 				{{ item.label }}
@@ -95,11 +100,17 @@ onMounted(load)
 			</button>
 		</nav>
 
-		<RoundsTab v-if="tab === 'rounds'" :session="session" @changed="refresh" @go-live="tab = 'live'" />
-		<ParticipantsTab v-else-if="tab === 'participants'" :session="session" @changed="refresh" />
-		<RoomsTab v-else-if="tab === 'rooms'" :session="session" @changed="refresh" />
-		<LiveTab v-else-if="tab === 'live'" :session="session" :round="activeRound" @changed="refresh" />
-		<AnalysisTab v-else-if="tab === 'analysis'" :session="session" :round="reviewRound" />
-		<ReportTab v-else-if="tab === 'report'" :session="session" @changed="refresh" />
+		<div
+			:id="`session-panel-${tab}`"
+			role="tabpanel"
+			:aria-labelledby="`session-tab-${tab}`"
+			tabindex="0">
+			<RoundsTab v-if="tab === 'rounds'" :session="session" @changed="refresh" @go-live="tab = 'live'" />
+			<ParticipantsTab v-else-if="tab === 'participants'" :session="session" @changed="refresh" />
+			<RoomsTab v-else-if="tab === 'rooms'" :session="session" @changed="refresh" />
+			<LiveTab v-else-if="tab === 'live'" :session="session" :round="activeRound" @changed="refresh" />
+			<AnalysisTab v-else-if="tab === 'analysis'" :session="session" :round="reviewRound" />
+			<ReportTab v-else-if="tab === 'report'" :session="session" @changed="refresh" />
+		</div>
 	</div>
 </template>

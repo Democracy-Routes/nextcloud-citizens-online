@@ -65,26 +65,26 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<div class="cz-panel">
+	<div class="cz-page" style="max-width: 720px">
 		<h2>New session</h2>
 		<p class="cz-muted">
 			A session is one online deliberation: a group of people, a sequence of rounds, and the
 			breakout rooms they discuss in.
 		</p>
 
-		<label class="cz-field">
-			<span>Name</span>
+		<div class="cz-field">
+			<label>Name</label>
 			<input v-model="name" type="text" maxlength="200" placeholder="Urban mobility, first assembly" />
-		</label>
+		</div>
 
-		<label class="cz-field">
-			<span>Description <em class="cz-muted">(optional)</em></span>
+		<div class="cz-field">
+			<label>Description <em class="cz-muted">(optional)</em></label>
 			<textarea v-model="description" rows="2" maxlength="5000"></textarea>
-		</label>
+		</div>
 
-		<div class="cz-field-row">
-			<label class="cz-field">
-				<span>Language</span>
+		<div class="cz-fieldgrid">
+			<div class="cz-field">
+				<label>Language</label>
 				<select v-model="language">
 					<option value="en">English</option>
 					<option value="it">Italian</option>
@@ -92,18 +92,18 @@ async function save(): Promise<void> {
 					<option value="fr">French</option>
 					<option value="es">Spanish</option>
 				</select>
-			</label>
-			<label class="cz-field">
-				<span>Rooms per round</span>
+			</div>
+			<div class="cz-field">
+				<label>Rooms per round</label>
 				<input v-model.number="roomsPerRound" type="number" min="1" max="20" />
-			</label>
-			<label class="cz-field">
-				<span>Facilitation</span>
+			</div>
+			<div class="cz-field">
+				<label>Facilitation</label>
 				<select v-model="policyPreset">
 					<option value="gentle">Gentle</option>
 					<option value="strict">Strict</option>
 				</select>
-			</label>
+			</div>
 		</div>
 
 		<div class="cz-checks">
@@ -114,30 +114,30 @@ async function save(): Promise<void> {
 
 		<h3>Rounds</h3>
 		<div v-for="(round, index) in rounds" :key="index" class="cz-round-edit">
-			<div class="cz-field-row">
-				<label class="cz-field cz-field--grow">
-					<span>Title</span>
+			<div class="cz-fieldgrid">
+				<div class="cz-field">
+					<label>Title</label>
 					<input v-model="round.title" type="text" maxlength="200" />
-				</label>
-				<label class="cz-field cz-field--narrow">
-					<span>Minutes</span>
+				</div>
+				<div class="cz-field" style="max-width: 160px">
+					<label>Minutes</label>
 					<input v-model.number="round.duration_minutes" type="number" min="1" max="480" />
-				</label>
+				</div>
 				<CzButton small variant="tertiary" :disabled="rounds.length === 1" @click="removeRound(index)">
 					Remove
 				</CzButton>
 			</div>
-			<label class="cz-field">
-				<span>Question for this round</span>
+			<div class="cz-field">
+				<label>Question for this round</label>
 				<input v-model="round.question" type="text" maxlength="4000"
 					placeholder="What is the most important mobility problem?" />
-			</label>
+			</div>
 		</div>
 		<CzButton small @click="addRound">Add a round</CzButton>
 
 		<p v-if="error" class="cz-error">{{ error }}</p>
 
-		<div class="cz-actions">
+		<div class="cz-row">
 			<CzButton variant="primary" :disabled="saving" @click="save">
 				{{ saving ? 'Creating…' : 'Create session' }}
 			</CzButton>

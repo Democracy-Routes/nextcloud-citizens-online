@@ -47,13 +47,13 @@ onMounted(load)
 </script>
 
 <template>
-	<section class="cz-tabpanel">
+	<div>
 		<div v-if="!round" class="cz-empty">
 			<h3>Nothing analysed yet</h3>
 			<p class="cz-muted">Findings appear here once a round has ended.</p>
 		</div>
 		<template v-else>
-			<div class="cz-actions">
+			<div class="cz-row">
 				<CzButton @click="rerun">Re-run analysis for {{ round.title }}</CzButton>
 				<CzButton small variant="tertiary" @click="load">Refresh</CzButton>
 			</div>
@@ -77,7 +77,7 @@ onMounted(load)
 								{{ item.text }}
 							</blockquote>
 						</details>
-						<div class="cz-actions">
+						<div class="cz-row">
 							<span class="cz-muted cz-small">{{ finding.status.replaceAll('_', ' ').toLowerCase() }}</span>
 							<CzButton small variant="primary" @click="review(finding, 'APPROVED')">Approve</CzButton>
 							<CzButton small variant="tertiary" @click="review(finding, 'REJECTED')">Reject</CzButton>
@@ -101,7 +101,7 @@ onMounted(load)
 								{{ item.text }}
 							</blockquote>
 						</details>
-						<div class="cz-actions">
+						<div class="cz-row">
 							<span class="cz-muted cz-small">{{ finding.status.replaceAll('_', ' ').toLowerCase() }}</span>
 							<CzButton small variant="primary" @click="review(finding, 'APPROVED')">Approve</CzButton>
 							<CzButton small variant="tertiary" @click="review(finding, 'REJECTED')">Reject</CzButton>
@@ -111,5 +111,5 @@ onMounted(load)
 				</div>
 			</template>
 		</template>
-	</section>
+	</div>
 </template>

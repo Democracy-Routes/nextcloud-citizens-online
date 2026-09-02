@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<section class="cz-tabpanel">
+	<div>
 		<div v-if="!round" class="cz-empty">
 			<h3>No round is running</h3>
 			<p class="cz-muted">Start one from the Rounds tab and this page will fill with life.</p>
@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
 
 			<div class="cz-rooms">
 				<div v-for="room in data.rooms" :key="room.id" class="cz-card">
-					<div class="cz-card__head">
+					<div class="cz-row cz-row--spread" style="flex-wrap: nowrap; align-items: flex-start">
 						<h3>Room {{ room.number }}</h3>
 						<span class="cz-muted cz-small">{{ minutes(room.speaking_ms) }} spoken</span>
 					</div>
@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
 							<span class="cz-speaking__pct">{{ share(member) }}%</span>
 						</li>
 					</ul>
-					<div class="cz-actions">
+					<div class="cz-row">
 						<CzButton small @click="messageRoom(room)">Message room</CzButton>
 						<CzButton small variant="tertiary" @click="showTranscript(room)">
 							{{ openTranscriptRoom === room.id ? 'Hide' : 'Transcript' }}
@@ -184,5 +184,5 @@ onBeforeUnmount(() => {
 				</ul>
 			</div>
 		</template>
-	</section>
+	</div>
 </template>

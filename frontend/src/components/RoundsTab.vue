@@ -65,23 +65,23 @@ async function remove(round: any): Promise<void> {
 </script>
 
 <template>
-	<section class="cz-tabpanel">
+	<div>
 		<div v-for="round in session.rounds" :key="round.id" class="cz-card">
-			<div class="cz-card__head">
+			<div class="cz-row cz-row--spread" style="flex-wrap: nowrap; align-items: flex-start">
 				<h3>{{ round.title }}</h3>
 				<CzStatusPill :status="round.status" />
 			</div>
-			<div class="cz-field-row">
-				<label class="cz-field cz-field--grow">
-					<span>Question</span>
+			<div class="cz-fieldgrid">
+				<div class="cz-field">
+					<label>Question</label>
 					<input v-model="round.question" type="text" maxlength="4000" @blur="save(round)" />
-				</label>
-				<label class="cz-field cz-field--narrow">
-					<span>Minutes</span>
+				</div>
+				<div class="cz-field" style="max-width: 160px">
+					<label>Minutes</label>
 					<input v-model.number="round.duration_minutes" type="number" min="1" max="480" @blur="save(round)" />
-				</label>
+				</div>
 			</div>
-			<div class="cz-actions">
+			<div class="cz-row">
 				<CzButton
 					v-if="round.status === 'NOT_STARTED'"
 					variant="primary"
@@ -101,5 +101,5 @@ async function remove(round: any): Promise<void> {
 			</div>
 		</div>
 		<CzButton @click="addRound">Add a round</CzButton>
-	</section>
+	</div>
 </template>

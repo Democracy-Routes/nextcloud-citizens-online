@@ -45,9 +45,9 @@ onMounted(load)
 </script>
 
 <template>
-	<section class="cz-tabpanel">
-		<div class="cz-actions">
-			<label class="cz-check">
+	<div>
+		<div class="cz-row">
+			<label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
 				<input v-model="includeDrafts" type="checkbox" @change="load" />
 				Include unapproved AI drafts
 			</label>
@@ -59,7 +59,7 @@ onMounted(load)
 		</div>
 
 		<div v-if="loading" class="cz-muted">Loading…</div>
-		<div v-else-if="report" class="cz-report">
+		<div v-else-if="report">
 			<h2>{{ report.session.name }}</h2>
 			<p class="cz-muted">
 				{{ report.session.participants }} participants ·
@@ -99,5 +99,5 @@ onMounted(load)
 
 			<p class="cz-muted cz-small">{{ report.methodology_note }}</p>
 		</div>
-	</section>
+	</div>
 </template>

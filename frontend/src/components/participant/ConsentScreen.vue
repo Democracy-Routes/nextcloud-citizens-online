@@ -36,7 +36,7 @@ const retention = computed(() => {
 </script>
 
 <template>
-	<div class="cz-consent">
+	<div class="cz-page">
 		<div class="cz-eyebrow">{{ session.name }}</div>
 		<h2>Before you join</h2>
 		<p class="cz-muted">
@@ -68,7 +68,7 @@ const retention = computed(() => {
 			</li>
 		</ul>
 
-		<div class="cz-actions">
+		<div class="cz-row">
 			<CzButton variant="primary" @click="$emit('accept')">I understand — let me join</CzButton>
 			<CzButton @click="$emit('decline')">Not now</CzButton>
 		</div>

@@ -70,7 +70,7 @@ onMounted(load)
 
 <template>
 	<div v-if="!settings" class="cz-muted">Loading…</div>
-	<div v-else class="cz-panel">
+	<div v-else class="cz-page">
 		<h2>Settings</h2>
 		<p class="cz-muted">
 			These apply to every session on this server. Nothing leaves your infrastructure unless you
@@ -82,50 +82,50 @@ onMounted(load)
 			Used by the facilitator to phrase its messages and by the analysis to draft findings. Any
 			OpenAI-compatible endpoint works, including your own.
 		</p>
-		<div class="cz-field-row">
-			<label class="cz-field cz-field--grow">
-				<span>Base URL</span>
+		<div class="cz-fieldgrid">
+			<div class="cz-field">
+				<label>Base URL</label>
 				<input v-model="settings.llm_base_url" type="text" placeholder="https://ollama.com/v1" />
-			</label>
-			<label class="cz-field">
-				<span>Model</span>
+			</div>
+			<div class="cz-field">
+				<label>Model</label>
 				<input v-model="settings.llm_model" type="text" placeholder="glm-5.2:cloud" />
-			</label>
+			</div>
 		</div>
-		<label class="cz-field">
-			<span>
+		<div class="cz-field">
+			<label>
 				API key
 				<em v-if="settings.llm_api_key_set" class="cz-muted">— currently set ({{ settings.llm_api_key_hint }})</em>
-			</span>
+			</label>
 			<input v-model="llmKey" type="password" autocomplete="off" placeholder="leave empty to keep the current key" />
-		</label>
-		<div class="cz-actions">
+		</div>
+		<div class="cz-row">
 			<CzButton small @click="test('llm')">Test</CzButton>
 			<span class="cz-muted cz-small">{{ probe.llm }}</span>
 		</div>
 
 		<h3>Speech to text</h3>
-		<div class="cz-field-row">
-			<label class="cz-field">
-				<span>Engine</span>
+		<div class="cz-fieldgrid">
+			<div class="cz-field">
+				<label>Engine</label>
 				<select v-model="settings.stt_provider">
 					<option value="vosk">Vosk (self-hosted)</option>
 					<option value="whisper">Whisper / OpenAI-compatible</option>
 					<option value="mistral">Mistral Voxtral</option>
 					<option value="none">None</option>
 				</select>
-			</label>
-			<label class="cz-field cz-field--grow">
-				<span>Vosk server URL</span>
+			</div>
+			<div class="cz-field">
+				<label>Vosk server URL</label>
 				<input v-model="settings.vosk_url" type="text" placeholder="ws://citizens-vosk:2700" />
-			</label>
+			</div>
 		</div>
-		<label class="cz-field">
-			<span>Vosk models per language</span>
+		<div class="cz-field">
+			<label>Vosk models per language</label>
 			<input v-model="settings.vosk_language_models" type="text"
 				placeholder="en=/models/vosk-model-small-en-us-0.15,it=/models/vosk-model-small-it-0.22" />
-		</label>
-		<div class="cz-actions">
+		</div>
+		<div class="cz-row">
 			<CzButton small @click="test('vosk')">Test</CzButton>
 			<span class="cz-muted cz-small">{{ probe.vosk }}</span>
 		</div>
@@ -135,34 +135,34 @@ onMounted(load)
 			<label><input v-model="settings.facilitator_enabled" true-value="1" false-value="0" type="checkbox" /> Facilitator bot</label>
 			<label><input v-model="settings.moderation_enabled" true-value="1" false-value="0" type="checkbox" /> Check transcripts for abusive language</label>
 		</div>
-		<div class="cz-field-row">
-			<label class="cz-field">
-				<span>Default speaking policy</span>
+		<div class="cz-fieldgrid">
+			<div class="cz-field">
+				<label>Default speaking policy</label>
 				<select v-model="settings.policy_preset">
 					<option value="gentle">Gentle</option>
 					<option value="strict">Strict</option>
 				</select>
-			</label>
-			<label class="cz-field">
-				<span>Talk service account</span>
+			</div>
+			<div class="cz-field">
+				<label>Talk service account</label>
 				<input v-model="settings.talk_service_user" type="text" />
-			</label>
-			<label class="cz-field">
-				<span>Delete audio after (days, 0 = never)</span>
+			</div>
+			<div class="cz-field">
+				<label>Delete audio after (days, 0 = never)</label>
 				<input v-model="settings.audio_retention_days" type="number" min="0" max="3650" />
-			</label>
+			</div>
 		</div>
 
-		<label class="cz-field">
-			<span>Extra analysis instructions <em class="cz-muted">(appended, never overrides the evidence rules)</em></span>
+		<div class="cz-field">
+			<label>Extra analysis instructions <em class="cz-muted">(appended, never overrides the evidence rules)</em></label>
 			<textarea v-model="settings.analysis_extra_instructions" rows="3"></textarea>
-		</label>
-		<label class="cz-field">
-			<span>Organisation name (shown on reports)</span>
+		</div>
+		<div class="cz-field">
+			<label>Organisation name (shown on reports)</label>
 			<input v-model="settings.organization_name" type="text" />
-		</label>
+		</div>
 
-		<div class="cz-actions">
+		<div class="cz-row">
 			<CzButton variant="primary" :disabled="saving" @click="save">
 				{{ saving ? 'Saving…' : 'Save settings' }}
 			</CzButton>

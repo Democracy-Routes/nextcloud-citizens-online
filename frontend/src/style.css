@@ -246,6 +246,15 @@
 #citizens-online-app .cz-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 #citizens-online-app .cz-btn--small { padding: 5px 11px; font-size: 13px; font-weight: 500; gap: 5px; }
+@media (pointer: coarse) {
+	#citizens-online-app .cz-btn--small {
+		min-height: 44px;
+		padding: 10px 14px;
+	}
+	#citizens-online-app .cz-tab {
+		min-height: 44px;
+	}
+}
 #citizens-online-app .cz-btn--wide { width: 100%; }
 
 /* icon-only buttons */
@@ -966,3 +975,15 @@
 #citizens-online-app .cz-small { font-size: 13px; }
 #citizens-online-app .cz-error { color: var(--cz-danger); font-size: 14px; }
 #citizens-online-app .cz-link { font-size: 13px; align-self: center; }
+
+/* A small uppercase label above a heading — the online screens' one addition to
+   the shared vocabulary, and the sidebar's empty note. */
+#citizens-online-app .cz-eyebrow {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--cz-text-muted);
+}
+
+#citizens-online-app .cz-sidebar__empty { padding: 12px; font-size: 13px; }
