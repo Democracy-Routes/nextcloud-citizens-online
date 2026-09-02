@@ -21,7 +21,7 @@ balance, and what was said becomes an evidence-linked report an organizer review
              final report (PDF / MD / JSON)
 ```
 
-The in-person sibling of this app is [Citizens](https://github.com/theRAGEhero/nextcloud-citizens);
+The in-person sibling of this app is [Citizens](https://github.com/Democracy-Routes/nextcloud-citizens);
 the process vocabulary (Routes, modules) comes from Democracy Routes. See [`PLAN.md`](PLAN.md) for the
 architecture and roadmap, and [`docs/SPEC.md`](docs/SPEC.md) for the specification it implements.
 

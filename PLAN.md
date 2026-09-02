@@ -918,5 +918,5 @@ join `{roomid, sessionid}`; events `event.room.join/leave`, `event.participants.
 - HaRP: https://github.com/nextcloud/HaRP
 - Frankly Match (MIT): https://github.com/berkmancenter/frankly-match — `api/text_match.py`
 - Vosk models (Apache-2.0): https://alphacephei.com/vosk/models
-- Citizens ExApp: https://github.com/theRAGEhero/nextcloud-citizens
+- Citizens ExApp: https://github.com/Democracy-Routes/nextcloud-citizens
 - Legacy Democracy Routes: https://github.com/theRAGEhero/democracy-routes-v0.2.alpha
