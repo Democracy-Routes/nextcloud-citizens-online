@@ -1,18 +1,15 @@
 # Testing Citizens Online
 
 Everything below is already set up and running on
-**https://cloud.democracyinnovators.com**. Start at step 1.
+**https://<your-nextcloud>**. Start at step 1.
 
 ---
 
 ## Accounts
 
 Test participants and the service account were created for this build. Their
-passwords are in a root-only file on the server:
-
-```bash
-cat /root/citizens-online-test-users.txt
-```
+passwords are in a root-only file the build wrote on the server — its path is
+recorded in `HANDOVER.md`, section 4.
 
 | Account | Purpose |
 |---|---|

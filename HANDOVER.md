@@ -21,8 +21,8 @@ Four keys were set, all of which Nextcloud's own setup checks were asking for:
 
 | Key | Was | Now | Why |
 |---|---|---|---|
-| `overwrite.cli.url` | `https://localhost` | `https://cloud.democracyinnovators.com` | background jobs and notifications were generating `localhost` links |
-| `trusted_proxies` | *(empty)* | `192.168.240.1`, `127.0.0.1` | every client appeared to come from the docker gateway |
+| `overwrite.cli.url` | `https://localhost` | `https://<your-nextcloud>` | background jobs and notifications were generating `localhost` links |
+| `trusted_proxies` | *(empty)* | `the docker bridge gateway`, `127.0.0.1` | every client appeared to come from the docker gateway |
 | `default_phone_region` | *(unset)* | `IT` | Talk asks for it |
 | `maintenance_window_start` | *(unset)* | `1` | lets Nextcloud schedule heavy jobs at night |
 
@@ -33,10 +33,10 @@ Undo: `occ config:system:set <key> --value=<old>`, or restore the backup file.
 - **New file** (additive, nothing existing touched):
   `/etc/nginx/conf.d/00-co-websocket-upgrade.conf` — a `map` that lets vhosts
   proxy WebSockets correctly.
-- **Edited**: `/etc/nginx/sites-available/cloud.democracyinnovators.com`
+- **Edited**: `/etc/nginx/sites-available/<your-nextcloud>`
   — added `proxy_http_version 1.1`, `Upgrade`/`Connection` headers, and raised
   `proxy_read_timeout` from 300 to 3600.
-  Backup: `…/cloud.democracyinnovators.com.co-backup-20260831-231441`.
+  Backup: `…/<your-nextcloud>.co-backup-20260831-231441`.
 
 Undo: `cp <backup> <original> && rm /etc/nginx/conf.d/00-co-websocket-upgrade.conf && nginx -t && nginx -s reload`.
 
@@ -55,7 +55,7 @@ Undo: `cp <backup> <original> && rm /etc/nginx/conf.d/00-co-websocket-upgrade.co
 | `citizens-online` | service account; owns and moderates the Talk conversations the app creates |
 | `co1` … `co8` | test participants, all in the group `citizens-online-test` |
 
-Passwords: `/root/citizens-online-test-users.txt` (mode 0600).
+Passwords: `citizens-online-test-users.txt` in root's home directory (mode 0600).
 Undo: `occ user:disable <uid>` — or delete them if you prefer; nothing else
 depends on them.
 

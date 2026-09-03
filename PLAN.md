@@ -56,7 +56,7 @@
 
 ## 0. What was built
 
-The MVP 0.1 vertical slice runs on `cloud.democracyinnovators.com`: a session
+The MVP 0.1 vertical slice runs on `<your-nextcloud>`: a session
 with rounds and participants becomes real Talk breakout rooms, each browser
 records its own participant, the facilitator keeps time and speaking balance,
 and what was said becomes findings with evidence and a report.
@@ -115,7 +115,7 @@ Decisions taken by the project owner during planning (2026-08-28 → 2026-08-31)
 | License / language | AGPL-3.0-or-later. English UI; Italian localisation later. |
 | Participants | **Registered, normal Nextcloud users only** for now. No Guests-app accounts, no Talk link guests, no federated users. (Guests-app accounts are the documented path for one-off citizens later.) |
 | Pilots | Small pilots of ≤ 10 people first; first real pilot **50 people, English**; no date. |
-| Dev / staging instance | `cloud.democracyinnovators.com` (Nextcloud 34.0.3.2, AppAPI 34.0.0). |
+| Dev / staging instance | `<your-nextcloud>` (Nextcloud 34.0.3.2, AppAPI 34.0.0). |
 | Clients | Browser first; Talk mobile/desktop apps supported but tested later. Single instance. |
 | Federation | Later. Nextcloud federation only for sharing reports; ActivityPub for public objects in 1.0; federated participants in a Route are research, not a feature. |
 | LLM | Any **OpenAI-compatible endpoint** (an Ollama-served model, Mistral, …) through one adapter. **The LLM always phrases facilitator messages — no templated fallback.** A message that misses its deadline is dropped and logged, never delayed. An `AgentProvider` is therefore *required* for any Route with facilitation enabled. |
@@ -129,7 +129,7 @@ Decisions taken by the project owner during planning (2026-08-28 → 2026-08-31)
 
 ## 3. Current state of the dev instance
 
-Verified read-only on 2026-08-28 (`cloud.democracyinnovators.com`).
+Verified read-only on 2026-08-28 (`<your-nextcloud>`).
 
 | Component | State |
 |---|---|

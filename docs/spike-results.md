@@ -1,6 +1,6 @@
 # Step 0 spike results — Talk 24.0.4 on Nextcloud 34.0.3
 
-Run 2026-08-31 against `cloud.democracyinnovators.com` as the service user `citizens-online`,
+Run 2026-08-31 against `<your-nextcloud>` as the service user `citizens-online`,
 using OCS directly. Every conversation created by the spike was deleted afterwards.
 
 ## Answers

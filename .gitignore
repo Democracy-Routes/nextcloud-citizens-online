@@ -43,3 +43,6 @@ frontend/playwright-report/
 .app_secret
 build/
 frontend/node_modules/
+
+# local, per-deployment overrides
+scripts/dev-env.local.sh

@@ -12,10 +12,17 @@ CONTAINER="nc_app_citizens_online"
 IMAGE="citizens-online-dev"
 NETWORK="nextcloud_nextcloud-network"
 DATA_VOLUME="citizens_online_data"
-NC_CONTAINER="nextcloud"
-NEXTCLOUD_URL="https://cloud.democracyinnovators.com"
+NC_CONTAINER="${NC_CONTAINER:-nextcloud}"
+# Your own instance. Put it in scripts/dev-env.local.sh (gitignored) or export
+# it — this file is committed, so it must not carry one deployment's hostname.
+NEXTCLOUD_URL="${NEXTCLOUD_URL:-https://localhost}"
 DAEMON_NAME="manual_install_co"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Local, uncommitted overrides for anything above.
+if [ -f "$REPO_DIR/scripts/dev-env.local.sh" ]; then
+    . "$REPO_DIR/scripts/dev-env.local.sh"
+fi
 SECRET_FILE="$REPO_DIR/.app_secret"
 
 # One stable secret per checkout; shared between the container and the
