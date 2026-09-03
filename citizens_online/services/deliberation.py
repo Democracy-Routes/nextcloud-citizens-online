@@ -204,6 +204,12 @@ def remaining_seconds(obj: Round, now: datetime | None = None) -> int | None:
 def add_participants(
     db: DbSession, session_obj: Session, entries: list[dict], user: str
 ) -> list[Participant]:
+    """Add people who have already been checked against Nextcloud.
+
+    Callers must resolve ids through `services.directory` first: a name that is
+    not a real account looks perfectly fine in this table and then silently fails
+    to appear in Talk when the round starts.
+    """
     existing = {p.nc_user_id for p in session_obj.participants}
     created = []
     for entry in entries:
@@ -215,6 +221,7 @@ def add_participants(
             nc_user_id=uid[:64],
             display_name=(entry.get("display_name") or uid)[:120],
             role=entry.get("role", "participant"),
+            added_via_group=(entry.get("added_via_group") or "")[:64],
         )
         db.add(obj)
         existing.add(uid)
@@ -237,6 +244,7 @@ def participant_payload(obj: Participant) -> dict:
         "nc_user_id": obj.nc_user_id,
         "display_name": obj.display_name,
         "role": obj.role,
+        "added_via_group": obj.added_via_group,
         "consented": obj.consent_at is not None,
         "consent_at": obj.consent_at.isoformat() if obj.consent_at else None,
     }

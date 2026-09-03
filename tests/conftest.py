@@ -9,7 +9,7 @@ from citizens_online.db.migrate import run_migrations
 from citizens_online.db.models import Participant, Round, Session
 from citizens_online.db.session import configure_database, session_scope, sqlite_url
 from citizens_online.main import create_app
-from citizens_online.security.identity import get_current_user_id
+from citizens_online.security.identity import get_current_nc, get_current_user_id
 from citizens_online.storage.paths import db_path, ensure_storage_layout
 
 
@@ -27,16 +27,94 @@ def settings_env(tmp_path, monkeypatch):
     get_settings.cache_clear()
 
 
+class NextcloudError(Exception):
+    """Shaped like nc_py_api's exception: the code reads `.status_code`."""
+
+    def __init__(self, status_code: int, reason: str = ""):
+        super().__init__(f"[{status_code}] {reason}")
+        self.status_code = status_code
+        self.reason = reason
+
+
+class FakeNc:
+    """A Nextcloud that answers directory questions from a dict.
+
+    Mirrors the two behaviours the real server has that the code must handle:
+    autocomplete never returns the caller to themselves, and group membership is
+    refused unless you administer the group.
+    """
+
+    def __init__(self, user="tester"):
+        self.user = user
+        self.display_names = {f"co{i}": f"Test Participant {i}" for i in range(1, 51)}
+        self.display_names[user] = "The Organizer"
+        self.groups: dict[str, list[str]] = {"testers": ["co1", "co2", "co3"]}
+        self.forbidden_groups: set[str] = {"secret-group"}
+        self.calls: list[tuple[str, str]] = []
+
+    def ocs(self, method, path, params=None, **kwargs):
+        self.calls.append((method, path))
+        if "/core/autocomplete/get" in path:
+            # the real server takes one shareTypes[] value per call; asking for
+            # both at once returns only the groups
+            share_type = 1 if path.endswith("=1") else 0
+            return self._autocomplete(params or {}, share_type)
+        if path.endswith("/cloud/user"):
+            return {"id": self.user, "displayname": self.display_names.get(self.user, self.user)}
+        if "/cloud/groups/" in path and path.endswith("/users/details"):
+            return self._group(path.split("/cloud/groups/")[1].rsplit("/users/details", 1)[0])
+        raise NextcloudError(404, f"unmapped path {path}")
+
+    def _autocomplete(self, params, share_type):
+        needle = str(params.get("search", "")).lower()
+        share_types = [share_type]
+        out = []
+        if 0 in share_types:
+            out += [
+                {"id": uid, "label": name, "source": "users"}
+                for uid, name in sorted(self.display_names.items())
+                # the real server excludes the caller from their own results
+                if uid != self.user and (needle in uid.lower() or needle in name.lower())
+            ]
+        if 1 in share_types:
+            out += [
+                {"id": gid, "label": gid, "source": "groups"}
+                for gid in sorted(self.groups)
+                if needle in gid.lower()
+            ]
+        return out[: int(params.get("limit", 15))]
+
+    def _group(self, group_id):
+        if group_id in self.forbidden_groups:
+            raise NextcloudError(403, "Logged in account must be at least a sub admin")
+        if group_id not in self.groups:
+            raise NextcloudError(404, "group not found")
+        return {
+            "users": {
+                uid: {"id": uid, "displayname": self.display_names.get(uid, uid)}
+                for uid in self.groups[group_id]
+            }
+        }
+
+
 @pytest.fixture
-def client(settings_env):
+def nc():
+    """The fake Nextcloud the `client` fixture hands to the routes."""
+    return FakeNc()
+
+
+@pytest.fixture
+def client(settings_env, nc):
     """App without AppAPI signature auth; identity comes from the X-Test-User
-    header (default 'tester') so ownership rules can be exercised."""
+    header (default 'tester') so ownership rules can be exercised, and directory
+    lookups go to the `nc` fixture rather than a real server."""
     app = create_app(with_auth=False)
 
     def fake_user(request: Request) -> str:
         return request.headers.get("x-test-user", "tester")
 
     app.dependency_overrides[get_current_user_id] = fake_user
+    app.dependency_overrides[get_current_nc] = lambda: nc
     with TestClient(app) as test_client:
         yield test_client
 

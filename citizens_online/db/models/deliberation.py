@@ -101,6 +101,10 @@ class Participant(Base):
     nc_user_id: Mapped[str] = mapped_column(String(64), index=True)
     display_name: Mapped[str] = mapped_column(String(120), default="")
     role: Mapped[str] = mapped_column(String(16), default="participant")
+    # the Nextcloud group they were imported from, if any. A snapshot: group
+    # membership is not re-read, because consent and recordings attach to the
+    # person, not to whoever happens to be in a group on the day.
+    added_via_group: Mapped[str] = mapped_column(String(64), default="")
     # what this person agreed to, and when — see services/consent.py
     consent_json: Mapped[str] = mapped_column(Text, default="{}")
     consent_at: Mapped[datetime | None] = mapped_column(TZDateTime())

@@ -16,6 +16,7 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from citizens_online.api.admin import router as admin_router
 from citizens_online.api.capture import router as capture_router
+from citizens_online.api.directory import router as directory_router
 from citizens_online.api.findings import router as findings_router
 from citizens_online.api.integrations import router as integrations_router
 from citizens_online.api.me import router as me_router
@@ -125,6 +126,7 @@ def create_app(with_auth: bool = True) -> FastAPI:
     app.include_router(findings_router, prefix="/api/v1")
     app.include_router(reports_router, prefix="/api/v1")
     app.include_router(me_router, prefix="/api/v1")
+    app.include_router(directory_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(integrations_router, prefix="/api/v1")
 

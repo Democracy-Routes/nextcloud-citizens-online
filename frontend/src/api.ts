@@ -79,8 +79,30 @@ export const api = {
 
 	listParticipants: (sessionId: string) =>
 		request<any[]>('GET', `/api/v1/sessions/${sessionId}/participants`),
+	// every id is checked against Nextcloud, so this reports what it could not find
 	addParticipants: (sessionId: string, participants: Array<Record<string, unknown>>) =>
-		request<any[]>('POST', `/api/v1/sessions/${sessionId}/participants`, { participants }),
+		request<{ added: any[]; unknown: string[] }>(
+			'POST',
+			`/api/v1/sessions/${sessionId}/participants`,
+			{ participants },
+		),
+	addParticipantsFromGroup: (sessionId: string, groupId: string) =>
+		request<{ added: any[]; group_id: string; members: number }>(
+			'POST',
+			`/api/v1/sessions/${sessionId}/participants/from-group`,
+			{ group_id: groupId },
+		),
+	resyncGroup: (sessionId: string, groupId: string) =>
+		request<{ added: any[]; departed: any[]; group_id: string; members: number }>(
+			'POST',
+			`/api/v1/sessions/${sessionId}/participants/resync-group`,
+			{ group_id: groupId },
+		),
+	searchDirectory: (q: string) =>
+		request<{ results: Array<{ id: string; label: string; source: 'users' | 'groups' }> }>(
+			'GET',
+			`/api/v1/directory/search?q=${encodeURIComponent(q)}`,
+		),
 	deleteParticipant: (id: string) => request<void>('DELETE', `/api/v1/participants/${id}`),
 
 	rooms: (roundId: string) => request<any[]>('GET', `/api/v1/rounds/${roundId}/rooms`),

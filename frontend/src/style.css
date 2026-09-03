@@ -987,3 +987,83 @@
 }
 
 #citizens-online-app .cz-sidebar__empty { padding: 12px; font-size: 13px; }
+
+/* ===== directory picker: the app's only typeahead ===== */
+
+#citizens-online-app .cz-picker { position: relative; }
+
+#citizens-online-app .cz-picker__panel {
+	position: absolute;
+	z-index: 20;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
+	max-height: 300px;
+	overflow-y: auto;
+	background: var(--cz-bg);
+	border: 1px solid var(--cz-border-dark);
+	border-radius: var(--cz-radius);
+	box-shadow: var(--cz-shadow-lift);
+	padding: 4px;
+}
+
+#citizens-online-app .cz-picker__note { padding: 10px 12px; font-size: 13px; margin: 0; }
+
+#citizens-online-app .cz-picker__hit {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	width: 100%;
+	padding: 9px 12px;
+	border: none;
+	border-radius: var(--cz-radius);
+	background: none;
+	color: var(--cz-text);
+	font-size: 14px;
+	text-align: left;
+	cursor: pointer;
+}
+
+#citizens-online-app .cz-picker__hit--active { background: var(--cz-bg-hover); }
+#citizens-online-app .cz-picker__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#citizens-online-app .cz-picker__meta { color: var(--cz-text-muted); font-size: 12px; flex-shrink: 0; }
+
+#citizens-online-app .cz-groupchip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 6px 5px 11px;
+	border: 1px solid var(--cz-border);
+	border-radius: 999px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+#citizens-online-app .cz-groupchip__action {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 10px;
+	border: none;
+	border-radius: 999px;
+	background: var(--cz-bg-dark);
+	color: var(--cz-text);
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+#citizens-online-app .cz-groupchip__action:hover:not(:disabled) { background: var(--cz-primary-light); }
+#citizens-online-app .cz-groupchip__action:disabled { opacity: 0.5; cursor: default; }
+
+#citizens-online-app .cz-linklike {
+	border: none;
+	background: none;
+	padding: 0;
+	color: var(--cz-primary);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: underline;
+}

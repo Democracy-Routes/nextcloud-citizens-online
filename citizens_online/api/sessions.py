@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session as DbSession
 
 from citizens_online.core.engine import rounds as engine_rounds
 from citizens_online.db.session import get_db
-from citizens_online.security.identity import CurrentUser
+from citizens_online.security.identity import CurrentNc, CurrentUser
 from citizens_online.services import deliberation as delib
+from citizens_online.services import directory as directory_svc
 from citizens_online.services import settings as settings_svc
 from citizens_online.services.audit import record_audit_event
 
@@ -61,6 +62,10 @@ class ParticipantIn(BaseModel):
 
 class ParticipantsIn(BaseModel):
     participants: list[ParticipantIn]
+
+
+class GroupIn(BaseModel):
+    group_id: str = Field(min_length=1, max_length=64)
 
 
 # ---------------------------------------------------------------- sessions
@@ -164,12 +169,88 @@ def list_participants(session_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/sessions/{session_id}/participants", status_code=201)
-def add_participants(session_id: str, payload: ParticipantsIn, db: DB, user: CurrentUser):
+def add_participants(
+    session_id: str, payload: ParticipantsIn, db: DB, user: CurrentUser, nc: CurrentNc
+):
+    """Add people, after checking each one is a real account.
+
+    Partial success on purpose: one mistyped name in a pasted list of fifty
+    should not reject the other forty-nine. The display name always comes from
+    Nextcloud, never from the client.
+    """
     obj = delib.get_owned_session(db, session_id, user)
+    requested = [p.nc_user_id for p in payload.participants]
+    roles = {p.nc_user_id: p.role for p in payload.participants}
+    found, unknown = directory_svc.resolve_users(nc, requested)
     created = delib.add_participants(
-        db, obj, [p.model_dump() for p in payload.participants], user
+        db,
+        obj,
+        [
+            {"nc_user_id": uid, "display_name": name, "role": roles.get(uid, "participant")}
+            for uid, name in found.items()
+        ],
+        user,
     )
-    return [delib.participant_payload(p) for p in created]
+    return {
+        "added": [delib.participant_payload(p) for p in created],
+        "unknown": unknown,
+    }
+
+
+@router.post("/sessions/{session_id}/participants/from-group", status_code=201)
+def add_participants_from_group(
+    session_id: str, payload: GroupIn, db: DB, user: CurrentUser, nc: CurrentNc
+):
+    """Import a Nextcloud group's members as a one-time snapshot."""
+    obj = delib.get_owned_session(db, session_id, user)
+    members = directory_svc.group_members(nc, payload.group_id)
+    created = delib.add_participants(
+        db,
+        obj,
+        [
+            {"nc_user_id": uid, "display_name": name, "added_via_group": payload.group_id}
+            for uid, name in members
+        ],
+        user,
+    )
+    return {
+        "added": [delib.participant_payload(p) for p in created],
+        "group_id": payload.group_id,
+        "members": len(members),
+    }
+
+
+@router.post("/sessions/{session_id}/participants/resync-group")
+def resync_group(session_id: str, payload: GroupIn, db: DB, user: CurrentUser, nc: CurrentNc):
+    """Pick up people who joined the group since it was imported.
+
+    Never removes anybody: someone who has left the group may already have
+    consented, spoken and been recorded in this session, and that is the
+    organizer's call to undo, not ours.
+    """
+    obj = delib.get_owned_session(db, session_id, user)
+    members = directory_svc.group_members(nc, payload.group_id)
+    member_ids = {uid for uid, _ in members}
+    created = delib.add_participants(
+        db,
+        obj,
+        [
+            {"nc_user_id": uid, "display_name": name, "added_via_group": payload.group_id}
+            for uid, name in members
+        ],
+        user,
+    )
+    departed = [
+        delib.participant_payload(p)
+        for p in obj.participants
+        if p.added_via_group == payload.group_id and p.nc_user_id not in member_ids
+    ]
+    return {
+        "added": [delib.participant_payload(p) for p in created],
+        "departed": departed,
+        "group_id": payload.group_id,
+        "members": len(members),
+    }
 
 
 @router.delete("/participants/{participant_id}", status_code=204)
