@@ -20,7 +20,7 @@ jobs:
       - name: Lint
         run: |
           docker run --rm --user root -v "$PWD":/app -w /app --entrypoint sh citizens-test \
-            -c "pip install -q ruff && ruff check citizens tests"
+            -c "pip install -q ruff && ruff check citizens_online scripts tests"
 
       - name: Tests
         run: |

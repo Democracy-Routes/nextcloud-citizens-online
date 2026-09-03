@@ -5,11 +5,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from citizens_online.db.models import AgentEvent, ModerationEvent, Recording
 from citizens_online.db.session import get_db, get_read_db
+from citizens_online.infra.nextcloud.talk_adapter import MAX_BREAKOUT_ROOMS_PER_PARENT
 from citizens_online.security.identity import CurrentUser
 from citizens_online.services import deliberation as delib
 from citizens_online.services import settings as settings_svc
@@ -20,6 +22,18 @@ DB = Annotated[DbSession, Depends(get_db)]
 ReadDB = Annotated[DbSession, Depends(get_read_db)]
 
 
+class RandomizeIn(BaseModel):
+    # Bounded by Talk's own ceiling rather than an arbitrary number, so an
+    # impossible plan is refused here instead of at start_round, in front of a
+    # waiting assembly.
+    rooms: int | None = Field(default=None, ge=1, le=MAX_BREAKOUT_ROOMS_PER_PARENT)
+
+
+class MoveIn(BaseModel):
+    participant_id: str = Field(min_length=1, max_length=36)
+    room_id: str = Field(min_length=1, max_length=36)
+
+
 @router.get("/rounds/{round_id}/rooms")
 def list_rooms(round_id: str, db: ReadDB, user: CurrentUser):
     obj = delib.get_owned_round(db, round_id, user)
@@ -27,10 +41,9 @@ def list_rooms(round_id: str, db: ReadDB, user: CurrentUser):
 
 
 @router.post("/rounds/{round_id}/rooms/randomize")
-def randomize(round_id: str, db: DB, user: CurrentUser, payload: dict | None = None):
+def randomize(round_id: str, db: DB, user: CurrentUser, payload: RandomizeIn | None = None):
     obj = delib.get_owned_round(db, round_id, user)
-    count = (payload or {}).get("rooms")
-    delib.assign_randomly(db, obj, int(count) if count else None)
+    delib.assign_randomly(db, obj, payload.rooms if payload else None)
     return delib.rooms_payload(db, obj)
 
 
@@ -42,9 +55,9 @@ def copy_previous(round_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/rounds/{round_id}/rooms/move")
-def move(round_id: str, payload: dict, db: DB, user: CurrentUser):
+def move(round_id: str, payload: MoveIn, db: DB, user: CurrentUser):
     obj = delib.get_owned_round(db, round_id, user)
-    delib.move_participant(db, obj, payload["participant_id"], payload["room_id"])
+    delib.move_participant(db, obj, payload.participant_id, payload.room_id)
     return delib.rooms_payload(db, obj)
 
 

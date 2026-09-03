@@ -245,7 +245,7 @@ async def start():
         )
     spk_model = SpkModel(args.spk_model_path) if args.spk_model_path else None
 
-    pool = concurrent.futures.ThreadPoolExecutor((os.cpu_count() or 1))
+    pool = concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1)
 
     async with websockets.serve(recognize, args.interface, args.port):
         logging.info(

@@ -245,8 +245,31 @@ def participant_payload(obj: Participant) -> dict:
 # ------------------------------------------------------------- assignment
 
 def ensure_rooms(db: DbSession, round_obj: Round, count: int) -> list[Room]:
-    """Rooms are planned rows until the engine gives them Talk tokens."""
+    """Rooms are planned rows until the engine gives them Talk tokens.
+
+    Grows *and* shrinks: the room count changes whenever the organizer edits it,
+    and a surplus room left behind is not harmless — it is still created in Talk
+    and still counts against Talk's limit of 20 per conversation. A room that
+    already exists in Talk is never deleted here; dismantling a live round is the
+    engine's job, not the planner's.
+    """
     rooms = list(round_obj.rooms)
+    surplus = [r for r in rooms if r.number > count]
+    live = [r for r in surplus if r.talk_token]
+    if live:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Room {live[0].number} is already open in Talk; end the round before "
+                "reducing the number of rooms"
+            ),
+        )
+    if surplus:
+        for room in surplus:
+            db.delete(room)  # room_members cascades
+        rooms = [r for r in rooms if r.number <= count]
+        db.flush()
+        db.expire(round_obj, ["rooms"])
     created = False
     for number in range(len(rooms) + 1, count + 1):
         room = Room(
@@ -276,10 +299,17 @@ def assign_randomly(db: DbSession, round_obj: Round, room_count: int | None = No
     if not rooms:
         raise HTTPException(status_code=500, detail="No rooms could be created")
     random.shuffle(people)
-    _replace_members(db, round_obj)
+    known = _replace_members(db, round_obj)
     for index, person in enumerate(people):
         room = rooms[index % len(rooms)]
-        db.add(RoomMember(round_id=round_obj.id, room_id=room.id, participant_id=person.id))
+        db.add(
+            RoomMember(
+                round_id=round_obj.id,
+                room_id=room.id,
+                participant_id=person.id,
+                attendee_id=known.get(person.id),
+            )
+        )
     db.flush()
     log.info("rooms_assigned", round_id=round_obj.id, rooms=len(rooms), participants=len(people))
     return rooms
@@ -295,7 +325,7 @@ def copy_previous_assignment(db: DbSession, round_obj: Round) -> list[Room]:
         return assign_randomly(db, round_obj)
     rooms = ensure_rooms(db, round_obj, max(1, len(previous.rooms)))
     by_number = {r.number: r for r in rooms}
-    _replace_members(db, round_obj)
+    known = _replace_members(db, round_obj)
     for old_room in previous.rooms:
         target = by_number.get(old_room.number)
         if target is None:
@@ -303,7 +333,12 @@ def copy_previous_assignment(db: DbSession, round_obj: Round) -> list[Room]:
         for member in old_room.members:
             db.add(
                 RoomMember(
-                    round_id=round_obj.id, room_id=target.id, participant_id=member.participant_id
+                    round_id=round_obj.id,
+                    room_id=target.id,
+                    participant_id=member.participant_id,
+                    # the same person in the same parent conversation, so the
+                    # previous round already knows their attendee id
+                    attendee_id=member.attendee_id or known.get(member.participant_id),
                 )
             )
     db.flush()
@@ -322,19 +357,32 @@ def move_participant(db: DbSession, round_obj: Round, participant_id: str, to_ro
     if member is None:
         db.add(RoomMember(round_id=round_obj.id, room_id=to_room_id, participant_id=participant_id))
     else:
+        # attendee_id is the person's id in the parent conversation, not in a
+        # breakout room, so moving between rooms does not invalidate it. Clearing
+        # it here used to exclude exactly the person just moved from the remix.
         member.room_id = to_room_id
-        member.attendee_id = None
     db.flush()
 
 
-def _replace_members(db: DbSession, round_obj: Round) -> None:
+def _replace_members(db: DbSession, round_obj: Round) -> dict[str, int]:
     """Assignment is replaced wholesale, never merged: a half-applied plan is
-    worse than a new one."""
+    worse than a new one.
+
+    Returns the attendee ids it is about to discard, keyed by participant, so the
+    caller can carry them onto the new rows. `RoomMember.attendee_id` identifies
+    the person in the *parent* conversation — Talk resolves a breakout attendee
+    map against the parent's participants — so it survives any reshuffle and must
+    not be thrown away with the old plan. Losing it silently disables remix.
+    """
+    known: dict[str, int] = {}
     for member in db.execute(
         select(RoomMember).where(RoomMember.round_id == round_obj.id)
     ).scalars():
+        if member.attendee_id:
+            known[member.participant_id] = member.attendee_id
         db.delete(member)
     db.flush()
+    return known
 
 
 def rooms_payload(db: DbSession, round_obj: Round) -> list[dict]:

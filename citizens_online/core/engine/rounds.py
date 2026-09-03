@@ -134,7 +134,17 @@ def start_round(db: DbSession, round_obj: Round, actor: str, service_user: str,
         )
 
     created = talk.create_breakout_rooms(session_obj.parent_token, len(rooms), attendee_map)
-    for room, meeting_room in zip(rooms, created, strict=False):
+    if len(created) != len(rooms):
+        # Rooms without a token would sit there looking OPEN and never receive
+        # anyone; better to fail before the assembly starts than half-open it.
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Talk created {len(created)} breakout rooms but {len(rooms)} were requested; "
+                "the round was not started"
+            ),
+        )
+    for room, meeting_room in zip(rooms, created, strict=True):
         room.talk_token = meeting_room.token
         room.parent_token = session_obj.parent_token
         room.status = "OPEN"
@@ -208,13 +218,26 @@ def remix(db: DbSession, round_obj: Round, actor: str, service_user: str) -> dic
         raise HTTPException(status_code=409, detail="Round is not running")
     talk = _adapter(service_user)
     rooms = sorted(round_obj.rooms, key=lambda r: r.number)
-    attendee_map = {}
-    for index, room in enumerate(rooms):
-        for member in room.members:
-            if member.attendee_id:
-                attendee_map[member.attendee_id] = index
-    if attendee_map:
-        talk.reorganize_breakout_rooms(session_obj.parent_token, attendee_map)
+    members = [(index, m) for index, room in enumerate(rooms) for m in room.members]
+    if any(not m.attendee_id for _, m in members):
+        # A plan built before the round started, or rebuilt since, has rows with
+        # no attendee id yet. Ask Talk who is in the parent conversation and fill
+        # them in, rather than quietly leaving those people where they are.
+        attendee_by_user = sync_participants(db, session_obj, talk)
+        people = {p.id: p for p in session_obj.participants}
+        for _, member in members:
+            if not member.attendee_id:
+                person = people.get(member.participant_id)
+                if person:
+                    member.attendee_id = attendee_by_user.get(person.nc_user_id)
+        db.flush()
+    attendee_map = {m.attendee_id: index for index, m in members if m.attendee_id}
+    if not attendee_map:
+        raise HTTPException(
+            status_code=409,
+            detail="No participants could be matched to Talk attendees; nothing was moved",
+        )
+    talk.reorganize_breakout_rooms(session_obj.parent_token, attendee_map)
     record_audit_event(db, "round_remixed", "round", round_obj.id, actor, {"moved": len(attendee_map)})
     return {"moved": len(attendee_map)}
 

@@ -183,7 +183,10 @@ def build_report(db: DbSession, session_obj: Session, include_drafts: bool = Fal
             "language": session_obj.language,
             "status": session_obj.status,
             "participants": len(session_obj.participants),
-            "rooms": session_obj.rooms_per_round,
+            # the rooms actually used, not the number configured on the session:
+            # an explicit count, a copied assignment or an edit can all diverge
+            # from rooms_per_round, and a report must describe what happened
+            "rooms": max((len(r["rooms"]) for r in rounds_payload), default=0),
         },
         "method": method,
         "methodology_note": note,
