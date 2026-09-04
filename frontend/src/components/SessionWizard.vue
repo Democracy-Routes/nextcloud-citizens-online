@@ -14,7 +14,6 @@ const language = ref('en')
 const roomsPerRound = ref(2)
 const policyPreset = ref('gentle')
 const facilitator = ref(true)
-const moderation = ref(true)
 const capture = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -50,7 +49,6 @@ async function save(): Promise<void> {
 			rooms_per_round: roomsPerRound.value,
 			policy_preset: policyPreset.value,
 			facilitator_enabled: facilitator.value,
-			moderation_enabled: moderation.value,
 			capture_enabled: capture.value,
 			rounds: rounds.value.filter((r) => r.title.trim() || r.question.trim()),
 		})
@@ -109,7 +107,6 @@ async function save(): Promise<void> {
 		<div class="cz-checks">
 			<label><input v-model="facilitator" type="checkbox" /> Facilitator bot keeps time and speaking balance</label>
 			<label><input v-model="capture" type="checkbox" /> Record participants' microphones for the transcript</label>
-			<label><input v-model="moderation" type="checkbox" /> Check transcripts for abusive language</label>
 		</div>
 
 		<h3>Rounds</h3>

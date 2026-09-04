@@ -7,6 +7,7 @@ import AnalysisTab from './AnalysisTab.vue'
 import LiveTab from './LiveTab.vue'
 import ParticipantsTab from './ParticipantsTab.vue'
 import ReportTab from './ReportTab.vue'
+import SessionSettingsTab from './SessionSettingsTab.vue'
 import RoomsTab from './RoomsTab.vue'
 import RoundsTab from './RoundsTab.vue'
 import CzButton from './ui/CzButton.vue'
@@ -37,6 +38,7 @@ const TABS = [
 	{ id: 'live', label: 'Live' },
 	{ id: 'analysis', label: 'Analysis' },
 	{ id: 'report', label: 'Report' },
+	{ id: 'settings', label: 'Settings' },
 ]
 
 async function load(): Promise<void> {
@@ -111,6 +113,7 @@ onMounted(load)
 			<LiveTab v-else-if="tab === 'live'" :session="session" :round="activeRound" @changed="refresh" />
 			<AnalysisTab v-else-if="tab === 'analysis'" :session="session" :round="reviewRound" />
 			<ReportTab v-else-if="tab === 'report'" :session="session" @changed="refresh" />
+			<SessionSettingsTab v-else-if="tab === 'settings'" :session="session" @changed="refresh" />
 		</div>
 	</div>
 </template>

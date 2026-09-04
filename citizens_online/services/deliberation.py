@@ -90,6 +90,32 @@ def list_sessions(db: DbSession, user: str) -> list[Session]:
 
 
 def update_session(db: DbSession, obj: Session, data: dict, user: str) -> Session:
+    """Edit a session. Refused outright while a round is running.
+
+    Almost every field here is read live by something: the tick re-reads the
+    facilitation policy on every pass, transcription picks its speech model from
+    `language`, and `rooms_per_round` decides how many rooms the next
+    distribution builds. Changing any of that underneath a running round leaves
+    a session whose record disagrees with what actually happened, so the whole
+    form closes for the duration rather than field by field.
+    """
+    active = next((r for r in obj.rounds if r.status == "ACTIVE"), None)
+    if active is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Round {active.position} is running. End it before changing the session — "
+                "these settings shape how the round is transcribed and facilitated."
+            ),
+        )
+
+    changed: list[str] = []
+
+    def _set(field: str, value) -> None:
+        if getattr(obj, field) != value:
+            setattr(obj, field, value)
+            changed.append(field)
+
     for field in (
         "name",
         "description",
@@ -98,16 +124,20 @@ def update_session(db: DbSession, obj: Session, data: dict, user: str) -> Sessio
         "policy_preset",
         "speaking_policy",
     ):
-        if field in data and data[field] is not None:
-            setattr(obj, field, str(data[field]))
+        if data.get(field) is not None:
+            _set(field, str(data[field]))
     for field in ("facilitator_enabled", "moderation_enabled", "capture_enabled"):
-        if field in data and data[field] is not None:
-            setattr(obj, field, bool(data[field]))
+        if data.get(field) is not None:
+            _set(field, bool(data[field]))
     if data.get("rooms_per_round"):
-        obj.rooms_per_round = max(1, min(int(data["rooms_per_round"]), 20))
+        _set("rooms_per_round", max(1, min(int(data["rooms_per_round"]), 20)))
     if data.get("audio_retention_days") is not None:
-        obj.audio_retention_days = int(data["audio_retention_days"])
-    record_audit_event(db, "session_updated", "session", obj.id, user, {})
+        _set("audio_retention_days", int(data["audio_retention_days"]))
+
+    # Record *what* moved, not merely that something did: the previous version
+    # logged an empty payload, which left the audit trail unable to answer the
+    # only question anyone asks of it.
+    record_audit_event(db, "session_updated", "session", obj.id, user, {"changed": changed})
     return obj
 
 
@@ -119,6 +149,7 @@ def session_payload(db: DbSession, obj: Session, detail: bool = False) -> dict:
         "language": obj.language,
         "status": obj.status,
         "rooms_per_round": obj.rooms_per_round,
+        "speaking_policy": obj.speaking_policy,
         "parent_token": obj.parent_token,
         "facilitator_enabled": obj.facilitator_enabled,
         "moderation_enabled": obj.moderation_enabled,

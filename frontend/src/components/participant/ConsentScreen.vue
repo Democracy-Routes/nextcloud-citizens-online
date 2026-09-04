@@ -56,11 +56,6 @@ const retention = computed(() => {
 				<strong>AI drafts the findings.</strong> {{ analysisDestination }} Every finding
 				quotes the passages it rests on, and nothing is published until a human approves it.
 			</li>
-			<li v-if="handling?.moderation_enabled">
-				<strong>Moderation.</strong> Transcripts are checked for abusive language. Political
-				disagreement is not moderated — only conduct. Serious action is always taken by a
-				person, never automatically.
-			</li>
 			<li><strong>Retention.</strong> {{ retention }}</li>
 			<li>
 				<strong>You can decline.</strong> If you do, you can still watch the discussion, but

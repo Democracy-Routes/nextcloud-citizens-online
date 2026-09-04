@@ -4,17 +4,21 @@
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session as DbSession
 
 from citizens_online.core.engine import rounds as engine_rounds
 from citizens_online.db.session import get_db
+from citizens_online.domain.constants import Language, PolicyPreset, SpeakingPolicy
 from citizens_online.security.identity import CurrentNc, CurrentUser
 from citizens_online.services import deliberation as delib
 from citizens_online.services import directory as directory_svc
 from citizens_online.services import settings as settings_svc
 from citizens_online.services.audit import record_audit_event
+
+log = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["sessions"])
 DB = Annotated[DbSession, Depends(get_db)]
@@ -29,13 +33,13 @@ class RoundIn(BaseModel):
 class SessionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=5000)
-    language: str = Field(default="en", max_length=10)
+    language: Language = "en"
     rooms_per_round: int = Field(default=2, ge=1, le=20)
     analysis_instructions: str = Field(default="", max_length=4000)
     facilitator_enabled: bool = True
     moderation_enabled: bool = True
     capture_enabled: bool = True
-    policy_preset: str = Field(default="gentle", max_length=12)
+    policy_preset: PolicyPreset = "gentle"
     audio_retention_days: int = Field(default=0, ge=0, le=3650)
     rounds: list[RoundIn] = Field(default_factory=list)
 
@@ -43,14 +47,14 @@ class SessionCreate(BaseModel):
 class SessionUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=200)
     description: str | None = Field(default=None, max_length=5000)
-    language: str | None = Field(default=None, max_length=10)
+    language: Language | None = None
     rooms_per_round: int | None = Field(default=None, ge=1, le=20)
     analysis_instructions: str | None = Field(default=None, max_length=4000)
     facilitator_enabled: bool | None = None
     moderation_enabled: bool | None = None
     capture_enabled: bool | None = None
-    policy_preset: str | None = Field(default=None, max_length=12)
-    speaking_policy: str | None = Field(default=None, max_length=24)
+    policy_preset: PolicyPreset | None = None
+    speaking_policy: SpeakingPolicy | None = None
     audio_retention_days: int | None = Field(default=None, ge=0, le=3650)
 
 
@@ -90,15 +94,46 @@ def get_session(session_id: str, db: DB, user: CurrentUser):
 @router.put("/sessions/{session_id}")
 def update_session(session_id: str, payload: SessionUpdate, db: DB, user: CurrentUser):
     obj = delib.get_owned_session(db, session_id, user)
+    was_named = obj.name
     delib.update_session(db, obj, payload.model_dump(exclude_none=True), user)
+    if obj.name != was_named and obj.parent_token:
+        # Otherwise the Talk conversation keeps the name it was created with for
+        # ever, and participants see a room that no longer matches the session.
+        from citizens_online.infra.nextcloud.talk_adapter import TalkAdapter, TalkError
+
+        try:
+            snap = settings_svc.snapshot()
+            TalkAdapter(service_user=snap["talk_service_user"]).rename_conversation(
+                obj.parent_token, obj.name
+            )
+        except TalkError as exc:
+            # The rename is cosmetic; refusing the whole edit over it would be worse.
+            log.warning("talk_rename_failed", session_id=obj.id, error=str(exc)[:200])
     return delib.session_payload(db, obj, detail=True)
 
 
 @router.delete("/sessions/{session_id}", status_code=204)
 def delete_session(session_id: str, db: DB, user: CurrentUser):
     obj = delib.get_owned_session(db, session_id, user)
+    token = obj.parent_token
     record_audit_event(db, "session_deleted", "session", obj.id, user, {"name": obj.name})
     db.delete(obj)
+    if token:
+        # Deleting the session used to leave its Talk conversation and every
+        # breakout room behind for ever: a headless room named after an assembly
+        # whose transcripts, findings and report have all just been cascaded
+        # away. Breakout rooms go first — they are children of the parent, and
+        # removing the parent alone can strand them.
+        from citizens_online.infra.nextcloud.talk_adapter import TalkAdapter, TalkError
+
+        talk = TalkAdapter(service_user=settings_svc.snapshot()["talk_service_user"])
+        for step, action in (("breakouts", talk.remove_breakout_rooms), ("room", talk.delete_conversation)):
+            try:
+                action(token)
+            except TalkError as exc:
+                # The database row is already gone; a Talk failure must not turn
+                # a successful delete into a 500.
+                log.warning("talk_cleanup_failed", step=step, token=token, error=str(exc)[:200])
 
 
 # ------------------------------------------------------------------ rounds

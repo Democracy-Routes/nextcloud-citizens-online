@@ -35,7 +35,6 @@ async function save(): Promise<void> {
 			whisper_base_url: settings.value.whisper_base_url,
 			facilitator_enabled: settings.value.facilitator_enabled,
 			policy_preset: settings.value.policy_preset,
-			moderation_enabled: settings.value.moderation_enabled,
 			organization_name: settings.value.organization_name,
 			audio_retention_days: settings.value.audio_retention_days,
 			talk_service_user: settings.value.talk_service_user,
@@ -130,10 +129,9 @@ onMounted(load)
 			<span class="cz-muted cz-small">{{ probe.vosk }}</span>
 		</div>
 
-		<h3>Facilitation and moderation</h3>
+		<h3>Facilitation</h3>
 		<div class="cz-checks">
 			<label><input v-model="settings.facilitator_enabled" true-value="1" false-value="0" type="checkbox" /> Facilitator bot</label>
-			<label><input v-model="settings.moderation_enabled" true-value="1" false-value="0" type="checkbox" /> Check transcripts for abusive language</label>
 		</div>
 		<div class="cz-fieldgrid">
 			<div class="cz-field">

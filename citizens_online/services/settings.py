@@ -246,7 +246,11 @@ def data_handling_summary() -> dict:
             "analysis_hosted": snap["llm_enabled"] and not _is_local_endpoint(snap["llm_base_url"]),
             "analysis_endpoint_host": urlparse(snap["llm_base_url"]).hostname or "",
             "facilitator_enabled": snap["facilitator_enabled"],
-            "moderation_enabled": snap["moderation_enabled"],
+            # No "moderation_enabled" here on purpose. The setting exists and
+            # defaults to on, but nothing in this app classifies transcripts for
+            # abusive language — core/agents/moderation.py was planned and never
+            # written. A consent notice must not describe processing that does
+            # not happen, so the claim is withheld until the feature exists.
             "audio_retention_days": snap["audio_retention_days"],
         }
     except Exception:
