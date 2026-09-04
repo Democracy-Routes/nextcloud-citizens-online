@@ -105,6 +105,8 @@ class Participant(Base):
     # membership is not re-read, because consent and recordings attach to the
     # person, not to whoever happens to be in a group on the day.
     added_via_group: Mapped[str] = mapped_column(String(64), default="")
+    # when this person was told the assembly exists; None means never
+    invited_at: Mapped[datetime | None] = mapped_column(TZDateTime())
     # what this person agreed to, and when — see services/consent.py
     consent_json: Mapped[str] = mapped_column(Text, default="{}")
     consent_at: Mapped[datetime | None] = mapped_column(TZDateTime())

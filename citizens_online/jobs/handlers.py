@@ -19,6 +19,7 @@ import json
 from sqlalchemy import select
 
 from citizens_online.db.models import Recording, Room, Round, Transcript
+from citizens_online.db.models.base import utcnow
 from citizens_online.db.session import session_scope
 from citizens_online.logging_setup import get_logger
 from citizens_online.services import analysis as analysis_svc
@@ -308,6 +309,59 @@ def handle_finalize_round(payload: dict) -> None:
             enqueue_job(db, "ANALYZE_ROOM", {"room_id": room.id})
 
 
+
+def handle_invite_participants(payload: dict) -> None:
+    """Tell people the assembly exists.
+
+    A job rather than part of the request: notifying somebody means impersonating
+    them, and each impersonation re-fetches the server capabilities, so fifty
+    participants is roughly a hundred round-trips — far too long to hold a
+    browser on.
+    """
+    from citizens_online.db.models import Participant, Session
+    from citizens_online.services import notifications
+
+    session_id = payload["session_id"]
+    force = bool(payload.get("force"))
+
+    with session_scope() as db:
+        session_obj = db.get(Session, session_id)
+        if session_obj is None:
+            return
+        targets = [
+            (p.id, p.nc_user_id)
+            for p in session_obj.participants
+            if force or p.invited_at is None
+        ]
+        subject, message = notifications.invite_text(
+            session_obj.name, len(session_obj.rounds), session_obj.language
+        )
+    if not targets:
+        return
+
+    link = notifications.app_link()
+    nc = notifications._client()
+    delivered = []
+    for participant_id, user_id in targets:
+        if notifications.notify(nc, user_id, subject, message, link=link):
+            delivered.append(participant_id)
+
+    # Only people who were actually reached are marked invited, so a failure is
+    # retried by the next press of the button rather than silently swallowed.
+    if delivered:
+        with session_scope() as db:
+            for participant_id in delivered:
+                person = db.get(Participant, participant_id)
+                if person is not None:
+                    person.invited_at = utcnow()
+    log.info(
+        "participants_invited",
+        session_id=session_id,
+        delivered=len(delivered),
+        attempted=len(targets),
+    )
+
+
 HANDLERS = {
     "ASSEMBLE_AUDIO": handle_assemble_audio,
     "TRANSCRIBE_FINAL": handle_transcribe_final,
@@ -315,4 +369,5 @@ HANDLERS = {
     "ANALYZE_ROOM": handle_analyze_room,
     "ANALYZE_ROUND": handle_analyze_round,
     "FINALIZE_ROUND": handle_finalize_round,
+    "INVITE_PARTICIPANTS": handle_invite_participants,
 }

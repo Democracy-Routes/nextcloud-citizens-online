@@ -276,6 +276,7 @@ def participant_payload(obj: Participant) -> dict:
         "display_name": obj.display_name,
         "role": obj.role,
         "added_via_group": obj.added_via_group,
+        "invited_at": obj.invited_at.isoformat() if obj.invited_at else None,
         "consented": obj.consent_at is not None,
         "consent_at": obj.consent_at.isoformat() if obj.consent_at else None,
     }

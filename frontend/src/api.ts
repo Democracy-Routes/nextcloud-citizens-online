@@ -98,6 +98,12 @@ export const api = {
 			`/api/v1/sessions/${sessionId}/participants/resync-group`,
 			{ group_id: groupId },
 		),
+	inviteParticipants: (sessionId: string, force = false) =>
+		request<{ queued: number; reason?: string }>(
+			'POST',
+			`/api/v1/sessions/${sessionId}/participants/invite`,
+			{ force },
+		),
 	searchDirectory: (q: string) =>
 		request<{ results: Array<{ id: string; label: string; source: 'users' | 'groups' }> }>(
 			'GET',

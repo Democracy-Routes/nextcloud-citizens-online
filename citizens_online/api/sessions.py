@@ -17,6 +17,7 @@ from citizens_online.services import deliberation as delib
 from citizens_online.services import directory as directory_svc
 from citizens_online.services import settings as settings_svc
 from citizens_online.services.audit import record_audit_event
+from citizens_online.services.jobs import enqueue_job
 
 log = structlog.get_logger(__name__)
 
@@ -286,6 +287,32 @@ def resync_group(session_id: str, payload: GroupIn, db: DB, user: CurrentUser, n
         "group_id": payload.group_id,
         "members": len(members),
     }
+
+
+class InviteIn(BaseModel):
+    # Re-inviting reaches people who were told once and never responded; without
+    # it, pressing the button twice notifies nobody a second time.
+    force: bool = False
+
+
+@router.post("/sessions/{session_id}/participants/invite")
+def invite_participants(session_id: str, db: DB, user: CurrentUser, payload: InviteIn | None = None):
+    """Tell participants the assembly exists.
+
+    Queued rather than sent inline: each recipient costs about two round-trips
+    to Nextcloud, so a fifty-person guest list would hold the browser for the
+    better part of a minute.
+    """
+    obj = delib.get_owned_session(db, session_id, user)
+    force = bool(payload and payload.force)
+    pending = [p for p in obj.participants if force or p.invited_at is None]
+    if not pending:
+        return {"queued": 0, "reason": "everyone has already been invited"}
+    enqueue_job(db, "INVITE_PARTICIPANTS", {"session_id": obj.id, "force": force})
+    record_audit_event(
+        db, "participants_invited", "session", obj.id, user, {"count": len(pending)}
+    )
+    return {"queued": len(pending)}
 
 
 @router.delete("/participants/{participant_id}", status_code=204)

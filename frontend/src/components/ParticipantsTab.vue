@@ -6,7 +6,7 @@
 // that is not a real account used to look perfectly fine here and then simply
 // fail to appear in Talk when the round started.
 import { computed, onMounted, ref } from 'vue'
-import { mdiAccountGroup, mdiPlus, mdiRefresh } from '@mdi/js'
+import { mdiAccountGroup, mdiBellOutline, mdiPlus, mdiRefresh } from '@mdi/js'
 import { api } from '../api'
 import CzButton from './ui/CzButton.vue'
 import CzEmptyState from './ui/CzEmptyState.vue'
@@ -114,6 +114,22 @@ async function resync(groupId: string): Promise<void> {
 	}
 }
 
+const invitedCount = computed(() => people.value.filter((p) => p.invited_at).length)
+const consentedCount = computed(() => people.value.filter((p) => p.consented).length)
+
+async function invite(force = false): Promise<void> {
+	busy.value = true
+	try {
+		const result = await api.inviteParticipants(props.session.id, force)
+		// Sending is queued, so the count reflects what was handed to the job.
+		await done(result.queued ? `Inviting ${result.queued} people…` : (result.reason || 'Nobody to invite'))
+	} catch (error: any) {
+		toast(error?.message || 'Could not invite', 'error')
+	} finally {
+		busy.value = false
+	}
+}
+
 async function remove(person: any): Promise<void> {
 	await api.deleteParticipant(person.id)
 	await load()
@@ -168,9 +184,28 @@ onMounted(load)
 			</p>
 		</div>
 
+		<div v-if="people.length" class="cz-row cz-row--spread" style="margin: 18px 0 10px">
+			<span class="cz-muted cz-small">
+				{{ people.length }} people · {{ invitedCount }} invited · {{ consentedCount }} consented
+			</span>
+			<div class="cz-row">
+				<CzButton
+					v-if="invitedCount < people.length"
+					variant="primary"
+					:icon="mdiBellOutline"
+					:disabled="busy"
+					@click="invite(false)">
+					Invite {{ people.length - invitedCount }}
+				</CzButton>
+				<CzButton v-if="invitedCount" small variant="tertiary" :disabled="busy" @click="invite(true)">
+					Remind everyone
+				</CzButton>
+			</div>
+		</div>
+
 		<table v-if="people.length" class="cz-table">
 			<thead>
-				<tr><th>User</th><th>Name</th><th>Added</th><th>Consent</th><th></th></tr>
+				<tr><th>User</th><th>Name</th><th>Added</th><th>Invited</th><th>Consent</th><th></th></tr>
 			</thead>
 			<tbody>
 				<tr v-for="person in people" :key="person.id">
@@ -181,6 +216,10 @@ onMounted(load)
 							via {{ person.added_via_group }}
 						</span>
 						<span v-else class="cz-muted cz-small">directly</span>
+					</td>
+					<td>
+						<span v-if="person.invited_at" class="cz-dot cz-dot--green" title="invited"></span>
+						<span v-else class="cz-dot cz-dot--gray" title="not invited yet"></span>
 					</td>
 					<td>
 						<span v-if="person.consented" class="cz-dot cz-dot--green" title="consented"></span>
