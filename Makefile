@@ -9,10 +9,10 @@ IMAGE       ?= citizens-online-test
 CONTAINER   ?= nc_app_citizens_online
 PY_PATHS    := citizens_online scripts tests
 
-.PHONY: help image test lint typecheck build bundles check up register unregister
+.PHONY: help image test lint typecheck build bundles check e2e up register unregister
 
 help:
-	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
+	@grep -E '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
 
 image: ## Build the image with test tooling (espeak-ng for speech fixtures)
 	docker build --build-arg WITH_TEST_TOOLS=1 -t $(IMAGE) .
@@ -37,6 +37,11 @@ bundles: build ## Fail if the committed bundles are stale, as CI does
 		git --no-pager diff --stat -- js css; exit 1; }
 
 check: lint test typecheck bundles ## Everything CI runs
+
+# Deliberately NOT part of `check`: these drive a real browser against a real
+# Nextcloud with this ExApp registered, which CI does not have. Local gate only.
+e2e: ## Browser tests (needs NEXTCLOUD_URL, CO_TEST_USER, CO_TEST_PASSWORD)
+	cd frontend && npm run e2e
 
 # --- local development against a running Nextcloud ------------------------
 

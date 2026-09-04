@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install firefox"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",

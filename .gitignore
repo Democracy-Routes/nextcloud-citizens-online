@@ -46,3 +46,5 @@ frontend/node_modules/
 
 # local, per-deployment overrides
 scripts/dev-env.local.sh
+frontend/tests/browser/.auth/
+frontend/.env.e2e
