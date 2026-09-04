@@ -181,3 +181,59 @@ def test_another_organizers_session_is_not_reachable(client):
         headers={"X-Test-User": "somebody-else"},
     )
     assert response.status_code == 404
+
+
+# ------------------------------------------------------- bulk paste batching
+
+
+def test_a_pasted_list_is_resolved_in_few_round_trips(client, nc):
+    """Fifty names used to mean fifty calls to Nextcloud. They share a prefix, so
+    one lookup answers for all of them."""
+    session_id = _session(client)
+    names = [f"co{i}" for i in range(1, 41)]
+    nc.calls.clear()
+
+    body = client.post(
+        f"/api/v1/sessions/{session_id}/participants",
+        json={"participants": [{"nc_user_id": u} for u in names]},
+    ).json()
+
+    assert len(body["added"]) == 40
+    assert body["unknown"] == []
+    lookups = [c for c in nc.calls if "autocomplete" in c[1]]
+    assert len(lookups) <= 3, f"expected a handful of lookups, made {len(lookups)}"
+
+
+def test_batching_still_reports_a_name_that_does_not_exist(client):
+    session_id = _session(client)
+    body = client.post(
+        f"/api/v1/sessions/{session_id}/participants",
+        json={"participants": [{"nc_user_id": u} for u in ("co1", "co2", "conot", "zzz")]},
+    ).json()
+    assert sorted(p["nc_user_id"] for p in body["added"]) == ["co1", "co2"]
+    assert sorted(body["unknown"]) == ["conot", "zzz"]
+
+
+def test_a_truncated_batch_still_finds_a_real_account(client, nc, monkeypatch):
+    """If a prefix has more matches than the batch limit, the per-name fallback
+    has to catch what the batch missed — otherwise a real account is reported as
+    unknown, which is the exact failure this feature exists to prevent."""
+    from citizens_online.services import directory as directory_svc
+
+    monkeypatch.setattr(directory_svc, "BATCH_LIMIT", 1)
+    session_id = _session(client)
+    body = client.post(
+        f"/api/v1/sessions/{session_id}/participants",
+        json={"participants": [{"nc_user_id": u} for u in ("co1", "co7", "co8")]},
+    ).json()
+    assert sorted(p["nc_user_id"] for p in body["added"]) == ["co1", "co7", "co8"]
+    assert body["unknown"] == []
+
+
+def test_the_pasted_order_is_preserved(client):
+    session_id = _session(client)
+    body = client.post(
+        f"/api/v1/sessions/{session_id}/participants",
+        json={"participants": [{"nc_user_id": u} for u in ("co3", "co1", "co2")]},
+    ).json()
+    assert [p["nc_user_id"] for p in body["added"]] == ["co3", "co1", "co2"]

@@ -38,6 +38,10 @@ GROUP_MEMBERS = "/ocs/v1.php/cloud/groups/{group_id}/users/details"
 # costs one round-trip to Nextcloud.
 MAX_RESOLVE = 100
 
+# How many matches to ask for per prefix. Higher than any plausible batch, so the
+# per-name fallback below is rare rather than routine.
+BATCH_LIMIT = 200
+
 SHARE_TYPE_USER = 0
 SHARE_TYPE_GROUP = 1
 
@@ -113,29 +117,49 @@ def resolve_users(nc: NextcloudApp, ids: list[str]) -> tuple[dict[str, str], lis
     user enumeration, so pasted lists keep working on a locked-down instance —
     only browsing the dropdown degrades there.
     """
+    wanted = [u for u in (i.strip() for i in ids[:MAX_RESOLVE]) if u]
     found: dict[str, str] = {}
     unknown: list[str] = []
     me = nc.user
-    for uid in ids[:MAX_RESOLVE]:
-        uid = uid.strip()
-        if not uid or uid in found or uid in unknown:
+
+    # One lookup per shared prefix rather than one per name: pasting a class list
+    # of fifty `co…` accounts is a single round-trip instead of fifty.
+    by_prefix: dict[str, list[str]] = {}
+    for uid in wanted:
+        if uid in found or uid == me:
+            if uid == me and uid not in found:
+                found[uid] = _display_name(nc, uid) or uid
             continue
-        if uid == me:
-            found[uid] = _display_name(nc, uid) or uid
-            continue
-        match = next(
-            (
-                e
-                for e in _autocomplete(nc, uid, 10, SHARE_TYPE_USER)
-                if e.get("id") == uid and e.get("source") != "groups"
-            ),
-            None,
-        )
-        if match is None:
-            unknown.append(uid)
-        else:
-            found[uid] = match.get("label") or uid
-    return found, unknown
+        by_prefix.setdefault(uid[:2].lower(), []).append(uid)
+
+    for prefix, batch in by_prefix.items():
+        known = {
+            e["id"]: (e.get("label") or e["id"])
+            for e in _autocomplete(nc, prefix, BATCH_LIMIT, SHARE_TYPE_USER)
+            if e.get("id") and e.get("source") != "groups"
+        }
+        for uid in batch:
+            if uid in known:
+                found[uid] = known[uid]
+                continue
+            # Not in the batch is not proof of absence: a prefix with more
+            # matches than BATCH_LIMIT truncates, and reporting a real account as
+            # unknown is exactly the silent-wrong-answer this feature removes.
+            match = next(
+                (
+                    e
+                    for e in _autocomplete(nc, uid, 10, SHARE_TYPE_USER)
+                    if e.get("id") == uid and e.get("source") != "groups"
+                ),
+                None,
+            )
+            if match is None:
+                unknown.append(uid)
+            else:
+                found[uid] = match.get("label") or uid
+
+    # preserve the order the organizer pasted them in
+    return {u: found[u] for u in wanted if u in found}, [u for u in wanted if u in unknown]
 
 
 def group_members(nc: NextcloudApp, group_id: str) -> list[tuple[str, str]]:

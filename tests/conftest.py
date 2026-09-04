@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from citizens_online.config import get_settings
 from citizens_online.db.migrate import run_migrations
-from citizens_online.db.models import Participant, Round, Session
+from citizens_online.db.models import Finding, Participant, Room, Round, Session
 from citizens_online.db.session import configure_database, session_scope, sqlite_url
 from citizens_online.main import create_app
 from citizens_online.security.identity import get_current_nc, get_current_user_id
@@ -172,3 +172,58 @@ def _make_session(db_session, *, rooms=2, people=6, owner="tester", rounds=1):
         )
     db_session.flush()
     return session.id, round_ids
+
+
+@pytest.fixture
+def make_finding():
+    """Factory for findings, for the report tests."""
+    return _make_finding
+
+
+def _make_finding(
+    db_session,
+    *,
+    session_id,
+    round_id,
+    scope="room",
+    room_id=None,
+    status="APPROVED",
+    title="A finding",
+    summary="What people said.",
+    kind="agreement",
+):
+    finding = Finding(
+        session_id=session_id,
+        round_id=round_id,
+        room_id=room_id,
+        scope=scope,
+        type=kind,
+        title=title,
+        summary=summary,
+        status=status,
+    )
+    db_session.add(finding)
+    db_session.flush()
+    return finding
+
+
+@pytest.fixture
+def make_rooms():
+    """Rooms for a round, without going through assignment."""
+    return _make_rooms
+
+
+def _make_rooms(db_session, round_obj, count=2):
+    rooms = []
+    for number in range(1, count + 1):
+        room = Room(
+            round_id=round_obj.id,
+            session_id=round_obj.session_id,
+            number=number,
+            label=f"Room {number}",
+        )
+        db_session.add(room)
+        rooms.append(room)
+    db_session.flush()
+    db_session.expire(round_obj, ["rooms"])
+    return rooms
